@@ -73,17 +73,14 @@ module.exports = {
     if (userContent) {
       const normalizedContent = userContent.toLowerCase().trim();
       const helpKeywords = [
-        'hướng dẫn sử dụng', 'huong dan su dung',
-        'cách dùng bot', 'cach dung bot',
-        'tính năng của bot', 'tinh nang cua bot',
-        'bot có tính năng gì', 'bot co tinh nang gi',
-        'lệnh bot', 'lenh bot',
-        'hướng dẫn bot', 'huong dan bot'
+        'help', 'bot', 'lệnh', 'lenh', 'command',
+        'hướng dẫn', 'huong dan',
+        'cách dùng', 'cach dung',
+        'tính năng', 'tinh nang',
+        'trợ giúp', 'tro giup'
       ];
       
-      const isAskingForHelp = helpKeywords.some(keyword => normalizedContent.includes(keyword)) || 
-                             normalizedContent === 'help' || 
-                             normalizedContent === 'bot';
+      const isAskingForHelp = helpKeywords.some(keyword => normalizedContent.includes(keyword));
                              
       logger.debug(`[DEBUG] isAskingForHelp: ${isAskingForHelp} (normalizedContent: "${normalizedContent}")`);
 
