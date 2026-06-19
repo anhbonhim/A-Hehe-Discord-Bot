@@ -88,9 +88,13 @@ module.exports = {
         return message.reply({ embeds: [getBotHelpEmbed(client)] });
       }
 
-      // 1. Lệnh Xóa lịch sử (clear)
-      const isClear = /^(clear|reset|xoá lịch sử|xóa lịch sử|xoá chat|xóa chat|xoá|xóa|clear history|clear chat|reset chat|reset history|dọn dẹp|don dep)$/i.test(normalizedContent);
-      if (isClear) {
+      // 1. Lệnh Xóa lịch sử (clear) - Hỗ trợ gõ nhầm và sai chính tả, giới hạn <= 20 ký tự để tránh nhầm lệnh
+      const isClear = (
+        /clear|reset|xoá|xóa|dọn|don|xoa/i.test(normalizedContent) && 
+        /chat|history|lịch sử|lich su|dẹp|dep|sạch|sach/i.test(normalizedContent)
+      ) || /^(clear|reset|xoá|xóa|xoa|clearr|reset|resett)$/i.test(normalizedContent);
+
+      if (isClear && normalizedContent.length <= 20) {
         const hadHistory = conversationManager.clearHistory(message.channel.id);
         const stats = conversationManager.getStats();
         
@@ -120,8 +124,8 @@ module.exports = {
         return;
       }
 
-      // 2. Lệnh Xem thông tin model hiện tại (model info)
-      const isModelInfo = /^(model|mô hình|mo hinh|xem model|xem mô hình|xem mo hinh|thông tin model|thong tin model|thông tin mô hình|check model)$/i.test(normalizedContent);
+      // 2. Lệnh Xem thông tin model hiện tại - Hỗ trợ gõ sai chính tả, giới hạn <= 20 ký tự
+      const isModelInfo = /model|mô hình|mo hinh|moddel|mode/i.test(normalizedContent) && normalizedContent.length <= 20;
       if (isModelInfo) {
         const { getModelInfo } = require('../services/aiService');
         const info = getModelInfo();
@@ -159,16 +163,28 @@ module.exports = {
         return message.reply({ embeds: [embed] });
       }
 
-      // 3. Lệnh Đổi model (bị vô hiệu hoá đối với user)
-      const changeModelMatch = userContent.match(/\b(đổi|doi|chuyển|chuyen|sử dụng|su dung|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(model|mô hình|mo hinh)\s+([a-zA-Z0-9_\-\/:\.]+)/i);
+      // 3. Lệnh Đổi model (bị vô hiệu hoá đối với user) - Nhận diện cả lỗi chính tả moddel, mode
+      const changeModelMatch = normalizedContent.match(/\b(đổi|doi|chuyển|chuyen|sử dụng|su dung|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(model|mô hình|mo hinh|moddel|mode)\s+([a-zA-Z0-9_\-\/:\.]+)/i);
       if (changeModelMatch) {
         return message.reply('❌ Lỗi: Bạn không có quyền thay đổi model AI. Tên model chính được cấu hình cố định bởi Host trong tệp `.env`. Bạn chỉ được phép thay đổi mức độ suy luận bằng lệnh: `đổi reasoning <mức>` (ví dụ: `đổi reasoning high`).');
       }
 
-      // 4. Lệnh Đổi mức suy luận (change reasoning effort)
-      const changeReasoningMatch = userContent.match(/\b(đổi|doi|chuyển|chuyen|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(reasoning|suy luận|suy luan)\s+(auto|low|medium|high)/i);
+      // 4. Lệnh Đổi mức suy luận (change reasoning effort) - Hỗ trợ gõ sai chính tả và tiếng Việt
+      const changeReasoningMatch = normalizedContent.match(/\b(đổi|doi|chuyển|chuyen|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(reasonings?|suy\s*luận|suy\s*luan|reason|reasonin)\s+(auto|autoo|low|loww|medium|high|hight|tự\s*động|tu\s*dong|thấp|thap|trung\s*bình|trung\s*binh|cao)/i);
       if (changeReasoningMatch) {
-        const newReasoning = changeReasoningMatch[4].trim().toLowerCase();
+        let newReasoning = changeReasoningMatch[4].trim().toLowerCase();
+        
+        // Ánh xạ các từ khóa tiếng Việt và lỗi chính tả phổ biến
+        if (newReasoning.includes('tự') || newReasoning.includes('dong') || newReasoning.includes('auto')) {
+          newReasoning = 'auto';
+        } else if (newReasoning.includes('thấp') || newReasoning.includes('thap') || newReasoning.includes('low')) {
+          newReasoning = 'low';
+        } else if (newReasoning.includes('trung') || newReasoning.includes('binh') || newReasoning.includes('medium')) {
+          newReasoning = 'medium';
+        } else if (newReasoning.includes('cao') || newReasoning.includes('high')) {
+          newReasoning = 'high';
+        }
+
         const { getModelInfo, setReasoningEffort } = require('../services/aiService');
         const oldInfo = getModelInfo();
         
@@ -211,10 +227,11 @@ module.exports = {
         }
       }
 
-      // 5. Lệnh Tìm kiếm trực tiếp (direct search)
-      const searchMatch = userContent.match(/^(tìm kiếm|tim kiem|search|tra cứu|tra cuu)\s+(.+)$/i);
+      // 5. Lệnh Tìm kiếm trực tiếp - Hỗ trợ tim, tìm, google, tra, tìm hộ...
+      const searchMatch = normalizedContent.match(/^(tìm\s*kiếm|tim\s*kiem|search|tra\s*cứu|tra\s*cuu|tìm\s*hộ|tim\s*ho|tìm|tim|google|tra)\s+(.+)$/i);
       if (searchMatch) {
-        const query = searchMatch[2].trim();
+        const prefixLength = searchMatch[1].length;
+        const query = userContent.substring(prefixLength).trim();
         await message.channel.sendTyping();
         try {
           const { search } = require('../services/webSearch');
