@@ -102,20 +102,25 @@ Bot hỗ trợ **Tương tác trực tiếp bằng tin nhắn** bằng cách tag
 
 ### 💬 Tương tác bằng tin nhắn chat
 
-Bạn chỉ cần nhắn tin (tag bot `@hehe`, reply tin nhắn của bot, hoặc nhắn trực tiếp trong DM) kèm nội dung mong muốn, bot sẽ tự động nhận diện ý định của bạn (**lưu ý: khi trò chuyện qua DM hoặc kênh NSFW, các lệnh và nội dung NSFW/18+ sẽ hoạt động tự do không bị giới hạn**):
+Bạn chỉ cần nhắn tin (tag bot `@hehe`, reply tin nhắn của bot, hoặc nhắn trực tiếp trong DM) kèm nội dung mong muốn. 
 
-| Yêu cầu của bạn | Ví dụ tin nhắn | Hành động của Bot |
+Bot sử dụng một hệ thống **2-Stage AI Router** thông minh thay thế hoàn toàn cho các biểu thức chính quy (Regex) thô cứng:
+* **Tầng 1 (AI Router - `gpt-oss-20b` với low reasoning)**: Tự động phân tích tin nhắn của bạn để nhận diện các yêu cầu hệ thống dưới dạng ngôn ngữ tự nhiên, viết tắt, từ lóng hoặc sai chính tả. Nếu phát hiện ra lệnh hệ thống, bot sẽ kích hoạt tool và trả về kết quả bằng template cố định ngay lập tức để đảm bảo thông tin chính xác 100%.
+* **Tầng 2 (Model chính - `gpt-oss-120b`)**: Nếu Tầng 1 báo lỗi hoặc xác định tin nhắn chỉ là cuộc nói chuyện thông thường, yêu cầu sẽ tự động chuyển tiếp sang mô hình lớn để phản hồi.
+
+Các lệnh hệ thống được Tầng 1 nhận dạng bao gồm:
+
+| Ý định của bạn | Ví dụ tin nhắn | Hành động của Bot |
 |-----------------|-------|-------------------|
-| **Hỏi AI thông thường** | `@hehe Giải thích lý thuyết tương đối` | Trả lời câu hỏi kèm ngữ cảnh hội thoại cũ |
-| **Xoá lịch sử hội thoại** | `@hehe clear` hoặc `@hehe xóa lịch sử` | Xoá bộ nhớ hội thoại của kênh hiện tại |
-| **Xem thông tin model** | `@hehe model` hoặc `@hehe xem mô hình` | Hiển thị thông số chi tiết model hiện tại |
-| **Đổi mức suy luận** | `@hehe đổi reasoning high` | Thay đổi mức độ suy luận (`auto`/`low`/`medium`/`high`) |
-| **Tìm kiếm web trực tiếp** | `@hehe tìm kiếm tin tức công nghệ mới nhất` | Tìm kiếm Google/Tavily và trả về danh sách link nguồn |
-| **Đọc ảnh/tài liệu** | Gửi kèm ảnh/tài liệu + tag `@hehe` | Đọc nội dung PDF/DOCX/TXT hoặc mô tả hình ảnh đính kèm |
+| **Hỏi AI thông thường** | `@hehe Giải thích lý thuyết tương đối` | Trực tiếp chuyển tiếp sang mô hình chính ở Tầng 2 |
+| **Xoá lịch sử hội thoại** | `@hehe xoá lịch sử đi` hoặc `quên hết đi bot ơi` | Kích hoạt `cmd_clear_history` để xoá lịch sử kênh hiện tại |
+| **Xem thông tin model** | `@hehe xem mô hình` hoặc `mày đang chạy model gì` | Kích hoạt `cmd_model_info` hiển thị chi tiết thông số cấu hình |
+| **Đổi mức suy luận** | `@hehe đổi reasoning lên cao` hoặc `suy nghĩ thấp thôi` | Kích hoạt `cmd_change_reasoning` đổi mức (`auto`/`low`/`medium`/`high`) |
+| **Trợ giúp & Hướng dẫn** | `@hehe cần trợ giúp` hoặc `help` hoặc `bot dùng thế nào` | Kích hoạt `cmd_bot_help` để hiển thị menu hướng dẫn sử dụng bot |
+| **Tìm kiếm web trực tiếp** | `@hehe tìm kiếm tin tức công nghệ mới nhất` | Tìm kiếm trực tiếp qua Google/Tavily (bỏ qua Tầng 2) |
+| **Đọc ảnh/tài liệu** | Gửi kèm ảnh/tài liệu + tag `@hehe` | Phân tích PDF/DOCX hoặc mô tả ảnh đính kèm |
 | **Ảnh Anime dễ thương** | `@hehe waifu` hoặc `@hehe ôm` | Trả về ảnh anime ngẫu nhiên theo hành động (nekos.best) |
 | **Ảnh Anime 18+** | `@hehe xwaifu` hoặc `@hehe xneko` | Trả về ảnh anime 18+ ngẫu nhiên (chỉ hoạt động trong kênh NSFW) |
-
-
 
 ---
 
