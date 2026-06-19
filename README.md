@@ -63,7 +63,6 @@ Mở file `.env` và điền các giá trị:
 ```env
 DISCORD_TOKEN=your_discord_bot_token_here
 OPENROUTER_API_KEY=your_openrouter_api_key_here
-CLIENT_ID=your_client_id_here
 GEMINI_API_KEY=your_gemini_api_key_here (nếu muốn dùng Vision xịn)
 ```
 
@@ -73,10 +72,8 @@ GEMINI_API_KEY=your_gemini_api_key_here (nếu muốn dùng Vision xịn)
 2. Nhấn **New Application** → đặt tên → **Create**
 3. Vào tab **Bot** → nhấn **Reset Token** → sao chép token
 4. Bật **MESSAGE CONTENT INTENT** trong phần Privileged Gateway Intents
-5. Tạo invite link:
-   - OAuth2 → URL Generator
-   - Scopes: `bot`
-   - Bot Permissions: `Send Messages`, `Read Message History`, `Embed Links`, `Attach Files`
+5. Sử dụng liên kết mời đã tạo sẵn để thêm bot vào máy chủ của bạn:
+   [Link Mời Bot (Guild Install)](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=0&scope=bot)
 
 ### 5. Lấy OpenRouter API Key
 
