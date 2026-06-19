@@ -19,12 +19,11 @@
 
 ---
 
-## 🔗 Link thêm Bot (Invite Links)
+## 🔗 Link mời Bot (Invite Link)
 
-Bạn có thể thêm bot vào máy chủ hoặc cài đặt trực tiếp vào tài khoản cá nhân của bạn để trò chuyện mọi lúc mọi nơi:
+Vì bot đã được gỡ bỏ hoàn toàn Slash Commands để chuyển sang trò chuyện tự nhiên bằng tin nhắn/mention, bot bắt buộc phải được mời vào Máy chủ (Guild) như một thành viên để lắng nghe các tin nhắn trong kênh và phản hồi:
 
-* **Thêm vào Máy chủ (Guild Install):** [Link Guild Install](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=0&scope=bot)
-* **Cài đặt cá nhân (User Install):** [Link User Install](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=1&scope=bot)
+* **Mời Bot vào Máy chủ (Guild Install):** [Link Guild Install](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=0&scope=bot)
 
 ---
 
