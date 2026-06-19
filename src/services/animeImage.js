@@ -254,32 +254,24 @@ function detectAnimeKeyword(content) {
 
   const normalized = content.toLowerCase().trim();
 
-  // Kiểm tra exact match trước
-  if (TRIGGER_KEYWORDS.has(normalized)) {
-    return TRIGGER_KEYWORDS.get(normalized);
+  // Sắp xếp các từ khóa theo độ dài giảm dần để tránh nhận diện trùng từ ngắn (ví dụ "ôm" nằm trong "ôm ấp")
+  const sortedKeywords = Array.from(TRIGGER_KEYWORDS.entries()).sort((a, b) => b[0].length - a[0].length);
+  
+  for (const [keyword, category] of sortedKeywords) {
+    if (normalized.includes(keyword)) {
+      return category;
+    }
   }
 
-  // Kiểm tra keyword "anime" + category
-  // Ví dụ: "anime waifu", "anime neko"
-  const animeMatch = normalized.match(/^anime\s+(.+)$/);
+  // Dự phòng: Kiểm tra "anime/random" + tên category trực tiếp
+  const animeMatch = normalized.match(/^(anime|random)\s+(.+)$/);
   if (animeMatch) {
-    const sub = animeMatch[1].trim();
-    if (TRIGGER_KEYWORDS.has(sub)) {
-      return TRIGGER_KEYWORDS.get(sub);
-    }
-    // Nếu sub trực tiếp là category hợp lệ
+    const sub = animeMatch[2].trim();
     if (SFW_CATEGORIES[sub]) {
       return sub;
     }
-  }
-
-  // Kiểm tra "random" + keyword
-  // Ví dụ: "random waifu", "random neko"
-  const randomMatch = normalized.match(/^random\s+(.+)$/);
-  if (randomMatch) {
-    const sub = randomMatch[1].trim();
-    if (TRIGGER_KEYWORDS.has(sub)) {
-      return TRIGGER_KEYWORDS.get(sub);
+    if (NSFW_CATEGORIES[sub]) {
+      return sub;
     }
   }
 

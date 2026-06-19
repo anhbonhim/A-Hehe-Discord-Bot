@@ -285,8 +285,9 @@ module.exports = {
     if (userContent) {
       const normalizedContent = userContent.toLowerCase().trim();
 
-      // Hiện danh sách categories nếu user gõ "anime list" hoặc "anime help"
-      if (normalizedContent === 'anime list' || normalizedContent === 'anime help' || normalizedContent === 'anime') {
+      // Hiện danh sách categories nếu user gõ "anime list", "danh sách anime", vv.
+      const isAnimeList = /^(anime\s+list|anime\s+help|anime|danh\s*sách\s*anime|danh\s*sach\s*anime|list\s*anime)$/i.test(normalizedContent);
+      if (isAnimeList) {
         const { EmbedBuilder: EB } = require('discord.js');
         const listEmbed = new EB()
           .setColor(0xE879F9)
