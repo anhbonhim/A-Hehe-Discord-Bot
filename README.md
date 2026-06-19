@@ -14,7 +14,7 @@
 - 💬 **Lịch sử hội thoại** — Nhớ ngữ cảnh cuộc trò chuyện theo từng kênh
 - 📊 **Trạng thái động** — Trạng thái hoạt động (Custom Status) của bot hiển thị tên model, số token đã dùng / dung lượng context window của kênh hoạt động gần nhất, và số credit OpenRouter còn lại theo thời gian thực
 - 🛠️ **Function Calling** — AI tự động sử dụng công cụ khi cần (tìm kiếm, tính toán, xem giờ)
-- 💬 **Tương tác hoàn toàn tự nhiên** — Trò chuyện trực tiếp bằng cách tag bot `@hehe`, trả lời tin nhắn (reply) của bot hoặc nhắn tin riêng (DM) mà không cần dùng slash command hay tiền tố phức tạp
+- 💬 **Tương tác hoàn toàn tự nhiên** — Trò chuyện trực tiếp bằng cách tag bot `@hehe`, trả lời tin nhắn (reply) của bot hoặc nhắn tin riêng (DM)
 - 🔄 **Đổi model linh hoạt** — Chuyển đổi model AI bất kỳ trên OpenRouter
 
 ---
@@ -105,7 +105,7 @@ Bot hỗ trợ **Tương tác trực tiếp bằng tin nhắn** bằng cách tag
 
 ### 💬 Tương tác bằng tin nhắn chat
 
-Bạn chỉ cần nhắn tin (tag bot `@hehe`, reply tin nhắn của bot, hoặc nhắn trực tiếp trong DM) kèm nội dung mong muốn, bot sẽ tự động nhận diện ý định của bạn (lưu ý: khi trò chuyện qua DM hoặc kênh NSFW, các lệnh và nội dung NSFW/18+ sẽ hoạt động tự do không bị giới hạn):
+Bạn chỉ cần nhắn tin (tag bot `@hehe`, reply tin nhắn của bot, hoặc nhắn trực tiếp trong DM) kèm nội dung mong muốn, bot sẽ tự động nhận diện ý định của bạn (**lưu ý: khi trò chuyện qua DM hoặc kênh NSFW, các lệnh và nội dung NSFW/18+ sẽ hoạt động tự do không bị giới hạn**):
 
 | Yêu cầu của bạn | Ví dụ tin nhắn | Hành động của Bot |
 |-----------------|-------|-------------------|
