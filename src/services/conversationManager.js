@@ -2,6 +2,15 @@
 // Quản lý lịch sử hội thoại cho từng kênh Discord
 // Lưu trữ trong bộ nhớ (Map), tự động dọn dẹp kênh không hoạt động
 
+const fs = require('fs');
+const path = require('path');
+
+// Thư mục lưu trữ lịch sử hội thoại dạng JSON
+const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
 // ============================================================
 // HẰNG SỐ CẤU HÌNH
 // ============================================================
