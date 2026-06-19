@@ -1,7 +1,7 @@
 // Điểm khởi đầu chính của Discord AI Bot
 // Khởi tạo client, tải events và commands, đăng nhập
 
-const { Client, GatewayIntentBits, Partials } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const { config, validateConfig } = require('./config');
@@ -67,6 +67,39 @@ function loadEvents() {
 }
 
 /**
+ * Tải tất cả commands từ thư mục src/commands/
+ */
+function loadCommands() {
+  client.commands = new Collection();
+  const commandsPath = path.join(__dirname, 'commands');
+
+  if (!fs.existsSync(commandsPath)) {
+    logger.warn('Thư mục commands không tồn tại');
+    return;
+  }
+
+  const commandFiles = fs
+    .readdirSync(commandsPath)
+    .filter((file) => file.endsWith('.js') && file !== 'deploy.js');
+
+  for (const file of commandFiles) {
+    try {
+      const command = require(path.join(commandsPath, file));
+
+      if (!command.data || !command.data.name) {
+        logger.warn(`Command file ${file} thiếu thuộc tính "data" hoặc "data.name", bỏ qua`);
+        continue;
+      }
+
+      client.commands.set(command.data.name, command);
+      logger.info(`Đã tải command: /${command.data.name} (${file})`);
+    } catch (error) {
+      logger.error(`Lỗi tải command ${file}: ${error.message}`);
+    }
+  }
+}
+
+/**
  * Xử lý tắt bot một cách an toàn
  * @param {string} signal - Tín hiệu nhận được
  */
@@ -109,7 +142,8 @@ async function start() {
   logger.info(`Model: ${config.ai.model}`);
   logger.info(`Reasoning: ${config.ai.reasoningEffort}`);
 
-  // Tải events
+  // Tải commands và events
+  loadCommands();
   loadEvents();
 
   // Đăng nhập vào Discord
