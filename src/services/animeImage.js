@@ -4,6 +4,9 @@
 
 const { EmbedBuilder } = require('discord.js');
 const logger = require('../utils/logger');
+const { searchAnimeImages } = require('./webSearch');
+const imageCache = require('./imageCache');
+const imageHistory = require('./imageHistory');
 
 // ============================================================
 // CẤU HÌNH
@@ -354,9 +357,10 @@ function getCategoryList(channel = null) {
  * Gửi trực tiếp ảnh anime hoặc danh mục dựa trên category được cung cấp bởi AI Router
  * @param {import('discord.js').Message} message 
  * @param {string} category 
+ * @param {boolean} isNSFW 
  * @returns {Promise<boolean>}
  */
-async function sendAnimeImage(message, category) {
+async function sendAnimeImage(message, category, isNSFW = false) {
   if (category === 'list') {
     const listEmbed = new EmbedBuilder()
       .setColor(0xE879F9)
@@ -364,33 +368,96 @@ async function sendAnimeImage(message, category) {
       .setDescription(
         'Tag tôi kèm một trong các từ khóa sau để nhận ảnh anime ngẫu nhiên:\n\n' +
         getCategoryList(message.channel) +
-        '\n\n**Ví dụ:** `@bot waifu`, `@bot neko`, `@bot hug`, `@bot ôm`'
+        '\n\n**Bạn cũng có thể yêu cầu ảnh động bất kỳ:** `@bot gửi ảnh luffy`, `@bot ảnh mèo ngủ`, `@bot rem`...'
       )
-      .setFooter({ text: 'Nguồn: nekos.best API' })
+      .setFooter({ text: 'Nguồn: nekos.best API & Web Search' })
       .setTimestamp();
     await message.reply({ embeds: [listEmbed] });
     return true;
   }
 
-  const isNSFWCategory = !!NSFW_CATEGORIES[category];
+  // Cờ kiểm tra xem là danh mục tĩnh (SFW/NSFW có sẵn) hay danh mục động
+  const isStaticSFW = !!SFW_CATEGORIES[category];
+  const isStaticNSFW = !!NSFW_CATEGORIES[category];
+  const isStatic = isStaticSFW || isStaticNSFW;
+  
+  // Xác định cờ NSFW tổng hợp
+  const effectiveIsNSFW = isStaticNSFW || isNSFW;
   const isNSFWChannel = message.channel.nsfw || !message.guild;
 
-  if (isNSFWCategory && !isNSFWChannel) {
-    await message.reply('❌ Cảnh báo: Lệnh này chứa nội dung nhạy cảm (NSFW) và chỉ có thể sử dụng trong kênh được gắn nhãn NSFW!');
+  // Kiểm tra quyền NSFW
+  if (effectiveIsNSFW && !isNSFWChannel) {
+    await message.reply('❌ Cảnh báo: Từ khóa này có thể chứa nội dung nhạy cảm (NSFW) và chỉ được phép sử dụng trong kênh được gắn nhãn NSFW!');
     return true;
   }
 
   try {
-    const imageUrl = await fetchRandomImage(category);
-    const catInfo = SFW_CATEGORIES[category] || NSFW_CATEGORIES[category] || { emoji: '🎴', label: category };
-    const randomColor = isNSFWCategory ? 0xFF0000 : EMBED_COLORS[Math.floor(Math.random() * EMBED_COLORS.length)];
+    let imageUrl = null;
+    let sourceText = '';
+
+    if (isStatic) {
+      // 1. LUỒNG DANH MỤC TĨNH (Nekos.best / Nekobot)
+      imageUrl = await fetchRandomImage(category);
+      sourceText = isStaticNSFW ? 'nekobot.xyz' : 'nekos.best';
+    } else {
+      // 2. LUỒNG DANH MỤC ĐỘNG (Cache -> Web Search -> History -> Random)
+      sourceText = 'Web Search';
+      
+      // Kiểm tra Cache
+      const cached = imageCache.getCache(category);
+      let validImages = [];
+      
+      if (cached) {
+        validImages = cached.images;
+        // Soft refresh
+        if (cached.needsRefresh) {
+          searchAnimeImages(category).then(newImages => {
+            if (newImages.length > 0) imageCache.setCache(category, newImages);
+          }).catch(err => logger.error(`Lỗi background refresh cho ${category}: ${err.message}`));
+        }
+      } else {
+        // Query mới nếu chưa có Cache
+        await message.channel.sendTyping();
+        validImages = await searchAnimeImages(category);
+        if (validImages.length > 0) {
+          imageCache.setCache(category, validImages);
+        }
+      }
+      
+      if (validImages.length === 0) {
+        await message.reply(`❌ Xin lỗi, tôi không tìm thấy ảnh nào hợp lệ cho "**${category}**". Bạn thử từ khóa khác nhé!`);
+        return true;
+      }
+      
+      // Lọc qua History (Chống lặp)
+      // Tỷ lệ lặp tự nhiên: 1/25 bỏ qua history filter
+      const shouldBypassHistory = Math.random() < (1 / 25);
+      let candidateImages = validImages;
+      
+      if (!shouldBypassHistory) {
+        candidateImages = validImages.filter(url => !imageHistory.isRecent(category, url));
+        // Nếu tất cả ảnh đều đã nằm trong lịch sử, đành lấy lại toàn bộ danh sách để tránh lỗi
+        if (candidateImages.length === 0) {
+          candidateImages = validImages;
+        }
+      }
+      
+      // Random chọn 1 ảnh
+      imageUrl = candidateImages[Math.floor(Math.random() * candidateImages.length)];
+      
+      // Thêm ảnh vừa gửi vào History
+      imageHistory.addHistory(category, imageUrl);
+    }
+
+    const catInfo = SFW_CATEGORIES[category] || NSFW_CATEGORIES[category] || { emoji: '🔍', label: category.charAt(0).toUpperCase() + category.slice(1) };
+    const randomColor = effectiveIsNSFW ? 0xFF0000 : EMBED_COLORS[Math.floor(Math.random() * EMBED_COLORS.length)];
 
     const embed = new EmbedBuilder()
       .setColor(randomColor)
       .setTitle(`${catInfo.emoji} ${catInfo.label}`)
       .setImage(imageUrl)
       .setFooter({
-        text: `Yêu cầu bởi ${message.author.username} • ${isNSFWCategory ? 'nekobot.xyz' : 'nekos.best'}`,
+        text: `Yêu cầu bởi ${message.author.username} • Nguồn: ${sourceText}`,
         iconURL: message.author.displayAvatarURL({ dynamic: true }),
       })
       .setTimestamp();
@@ -398,7 +465,7 @@ async function sendAnimeImage(message, category) {
     await message.reply({ embeds: [embed] });
 
     logger.discord(
-      `${message.author.tag} yêu cầu ảnh anime: ${category} (${isNSFWCategory ? 'NSFW' : 'SFW'})`
+      `${message.author.tag} yêu cầu ảnh: ${category} (${effectiveIsNSFW ? 'NSFW' : 'SFW'})`
     );
 
     return true;

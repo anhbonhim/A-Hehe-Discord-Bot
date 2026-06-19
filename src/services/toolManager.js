@@ -17,7 +17,9 @@ DANH SÁCH TOOL:
 2. cmd_model_info — xem thông tin model AI đang chạy
 3. cmd_change_reasoning — đổi mức suy luận (auto/low/medium/high)
 4. cmd_bot_help — xem tài liệu hướng dẫn sử dụng bot, các tính năng và danh sách lệnh
-5. cmd_anime_image — hiển thị ảnh anime ngẫu nhiên hoặc ảnh anime theo hành động yêu cầu (waifu, neko, ôm, hôn, nắm tay, cắn, vẫy, nhảy, tát, ...). Có tham số category để chọn thể loại.
+5. cmd_anime_image — hiển thị ảnh/gif anime ngẫu nhiên hoặc theo một từ khóa bất kỳ (waifu, ôm, luffy, rem, maid, fox girl, sleeping anime girl, ahegao, ...).
+  - Chú ý: Trích xuất từ khóa anime gần nhất với yêu cầu người dùng, không tự mở rộng ý nghĩa, không thêm mô tả mới, không dịch từ khóa. Giữ nguyên từ khóa người dùng cung cấp nếu có thể.
+  - AI phải tự quyết định xem từ khóa có chứa nội dung nhạy cảm/NSFW không (ví dụ: hentai, ecchi, ahegao, succubus, r18...) để set cờ \`isNSFW=true\`.
 
 VÍ DỤ ĐÚNG (PHẢI gọi tool):
 - "xoá lịch sử đi" → cmd_clear_history
@@ -33,12 +35,14 @@ VÍ DỤ ĐÚNG (PHẢI gọi tool):
 - "help" → cmd_bot_help
 - "các lệnh của bot" → cmd_bot_help
 - "cứu tôi" → cmd_bot_help
-- "gửi ảnh waifu đi" → cmd_anime_image(category="waifu")
-- "ôm tôi đi" → cmd_anime_image(category="hug")
-- "tôi bảo là nắm tay" → cmd_anime_image(category="handhold")
-- "danh sách anime" → cmd_anime_image(category="list")
-- "anime list" → cmd_anime_image(category="list")
-- "xwaifu" → cmd_anime_image(category="xwaifu")
+- "gửi ảnh waifu đi" → cmd_anime_image(category="waifu", isNSFW=false)
+- "danh sách anime" → cmd_anime_image(category="list", isNSFW=false)
+- "gửi ảnh luffy" → cmd_anime_image(category="luffy", isNSFW=false)
+- "ảnh rem" → cmd_anime_image(category="rem", isNSFW=false)
+- "gửi ảnh fox girl" → cmd_anime_image(category="fox girl", isNSFW=false)
+- "ảnh hentai rem" → cmd_anime_image(category="hentai rem", isNSFW=true)
+- "succubus" → cmd_anime_image(category="succubus", isNSFW=true)
+- "xwaifu" → cmd_anime_image(category="xwaifu", isNSFW=true)
 
 VÍ DỤ SAI (KHÔNG gọi tool nào):
 - "tôi mới xoá lịch sử chat với con gà" → câu kể chuyện về người/vật khác, không phải lệnh
@@ -107,25 +111,20 @@ function getRouterToolDefinitions() {
         type: 'function',
         function: {
           name: 'cmd_anime_image',
-          description: 'Lệnh hiển thị ảnh anime ngẫu nhiên hoặc ảnh anime theo hành động yêu cầu (waifu, neko, ôm, hôn, nắm tay, ...).',
+          description: 'Lệnh hiển thị ảnh/gif anime ngẫu nhiên hoặc theo từ khóa động do người dùng yêu cầu (luffy, waifu, rem, fox girl, ahegao...).',
           parameters: {
             type: 'object',
             properties: {
               category: {
                 type: 'string',
-                description: 'Thể loại ảnh anime muốn hiển thị (waifu, neko, hug, kiss, pat, handhold, slap, cry, smile, dance, xwaifu, xneko, list, ...).',
-                enum: [
-                  'waifu', 'neko', 'shinobu', 'megumin', 
-                  'bully', 'cuddle', 'cry', 'hug', 'awoo', 
-                  'kiss', 'lick', 'pat', 'smug', 'bonk', 
-                  'yeet', 'blush', 'smile', 'wave', 'highfive', 
-                  'handhold', 'nom', 'bite', 'glomp', 'slap', 
-                  'happy', 'wink', 'poke', 'dance', 'cringe', 'kick',
-                  'xwaifu', 'xneko', 'xtrap', 'xgif', 'list'
-                ]
+                description: 'Từ khóa hoặc thể loại ảnh muốn lấy (ví dụ: "waifu", "luffy", "rem", "hentai", "list"...). Giữ nguyên từ khóa người dùng nhập.',
+              },
+              isNSFW: {
+                type: 'boolean',
+                description: 'Xác định xem từ khóa/yêu cầu có chứa nội dung người lớn, nhạy cảm (NSFW) hay không (ví dụ: hentai, ecchi, ahegao, r18... thì true, còn lại false).',
               }
             },
-            required: ['category']
+            required: ['category', 'isNSFW']
           },
         },
       },

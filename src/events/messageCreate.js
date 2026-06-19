@@ -219,7 +219,9 @@ module.exports = {
             return message.reply({ embeds: [getBotHelpEmbed(client)] });
           } else if (funcName === 'cmd_anime_image') {
             const category = args.category;
-            await sendAnimeImage(message, category);
+            const isNSFW = args.isNSFW || false;
+            const { sendAnimeImage } = require('../services/animeImage');
+            await sendAnimeImage(message, category, isNSFW);
             return;
           }
         } else {

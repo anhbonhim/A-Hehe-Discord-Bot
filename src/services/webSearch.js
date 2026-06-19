@@ -256,6 +256,146 @@ function formatSearchResults(searchResult) {
   return formatted;
 }
 
+/**
+ * Xác thực URL ảnh bằng cách gửi request HEAD (hoặc GET nếu HEAD thất bại)
+ * và kiểm tra Content-Type
+ * @param {string} url 
+ * @returns {Promise<boolean>} true nếu là ảnh hợp lệ
+ */
+async function validateImageUrl(url) {
+  if (!url || !url.startsWith('http')) return false;
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    // Thử HEAD request trước
+    let response = await fetch(url, {
+      method: 'HEAD',
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
+      }
+    }).catch(() => null);
+    
+    // Đôi khi server không hỗ trợ HEAD, thử GET với stream bị huỷ ngay
+    if (!response || !response.ok) {
+      response = await fetch(url, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'
+        }
+      }).catch(() => null);
+    }
+    
+    clearTimeout(timeoutId);
+    
+    if (!response || !response.ok) return false;
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType) return false;
+    
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif'];
+    return validTypes.some(type => contentType.toLowerCase().includes(type));
+  } catch (err) {
+    return false;
+  }
+}
+
+/**
+ * Tìm kiếm danh sách ảnh anime động
+ * @param {string} query - Từ khóa tìm kiếm
+ * @returns {Promise<Array<string>>} Mảng các URL ảnh hợp lệ
+ */
+async function searchAnimeImages(query) {
+  let rawUrls = [];
+  
+  // Nguồn 1: Tavily API
+  if (TAVILY_API_KEY) {
+    console.info(`[WebSearch] Đang tìm ảnh qua Tavily cho query: "${query}"`);
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(TAVILY_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          api_key: TAVILY_API_KEY,
+          query: query + ' anime image',
+          include_images: true,
+          search_depth: 'basic',
+          max_results: 3
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.images && data.images.length > 0) {
+          rawUrls = data.images.map(img => typeof img === 'string' ? img : img.url).filter(Boolean);
+        } else if (data.results) {
+          for (const res of data.results) {
+            if (res.images) {
+              const resImages = res.images.map(img => typeof img === 'string' ? img : img.url).filter(Boolean);
+              rawUrls.push(...resImages);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[WebSearch] Lỗi gọi Tavily API: ${err.message}`);
+    }
+  }
+
+  // Nguồn 2: DuckDuckGo Fallback nếu Tavily thất bại hoặc rỗng
+  if (rawUrls.length === 0) {
+    console.info(`[WebSearch] Tavily không có ảnh. Fallback sang DuckDuckGo cho: "${query}"`);
+    try {
+      const DDG = require('duck-duck-scrape');
+      // Thử dùng searchImages, nếu hàm khác thì fallback qua search thường
+      const ddgMethod = DDG.searchImages || DDG.search;
+      const ddgResults = await ddgMethod(query + ' anime', { safeSearch: DDG.SafeSearchType.OFF });
+      
+      if (ddgResults && ddgResults.results) {
+        // format từ searchImages
+        rawUrls = ddgResults.results.slice(0, 15).map(img => img.image || img.url).filter(Boolean);
+      } else if (ddgResults && ddgResults.images) {
+        // format từ search
+        rawUrls = ddgResults.images.slice(0, 15).map(img => img.url || img.image).filter(Boolean);
+      } else if (Array.isArray(ddgResults)) {
+        rawUrls = ddgResults.slice(0, 15).map(img => img.image || img.url).filter(Boolean);
+      }
+    } catch (err) {
+      console.error(`[WebSearch] Lỗi gọi DuckDuckGo Image: ${err.message}`);
+    }
+  }
+
+  // Loại bỏ các url trùng lặp và null
+  rawUrls = [...new Set(rawUrls.filter(Boolean))];
+  
+  if (rawUrls.length === 0) {
+    return [];
+  }
+  
+  console.info(`[WebSearch] Đang xác thực ${rawUrls.length} ảnh...`);
+  const validUrls = [];
+  
+  // Xác thực URL tối đa 15 ảnh đầu tiên để tránh lâu
+  const urlsToCheck = rawUrls.slice(0, 15); 
+  const validationPromises = urlsToCheck.map(async (url) => {
+    const isValid = await validateImageUrl(url);
+    if (isValid) validUrls.push(url);
+  });
+  
+  await Promise.allSettled(validationPromises);
+  
+  console.info(`[WebSearch] Đã tìm thấy ${validUrls.length} ảnh hợp lệ.`);
+  return validUrls;
+}
+
 module.exports = {
   /** Tìm kiếm web (tự động chọn phương thức tốt nhất) */
   searchWeb,
@@ -268,4 +408,10 @@ module.exports = {
 
   /** Kiểm tra tính khả dụng của dịch vụ tìm kiếm */
   isSearchAvailable,
+
+  /** Tìm kiếm ảnh động */
+  searchAnimeImages,
+
+  /** Xác thực URL ảnh */
+  validateImageUrl
 };
