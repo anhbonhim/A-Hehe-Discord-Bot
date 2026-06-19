@@ -31,15 +31,22 @@ async function chat(messages, tools = null, options = {}) {
     const requestBody = {
       model: options.model || config.ai.model,
       messages,
-      max_tokens: options.maxTokens || config.ai.maxResponseTokens,
       temperature: options.temperature ?? config.ai.temperature,
     };
 
+    if (options.maxTokens) {
+      requestBody.max_tokens = options.maxTokens;
+    } else if (!options.model) {
+      // Chỉ dùng maxResponseTokens từ config cho model chính
+      requestBody.max_tokens = config.ai.maxResponseTokens;
+    }
+
     // Thêm reasoning effort nếu model hỗ trợ
     // Chế độ 'auto': không gửi trường reasoning, để model tự quyết định
-    if (config.ai.reasoningEffort && config.ai.reasoningEffort !== 'auto') {
+    const reasoningEffort = options.reasoningEffort !== undefined ? options.reasoningEffort : config.ai.reasoningEffort;
+    if (reasoningEffort && reasoningEffort !== 'auto') {
       requestBody.reasoning = {
-        effort: config.ai.reasoningEffort,
+        effort: reasoningEffort,
       };
     }
 
@@ -52,7 +59,11 @@ async function chat(messages, tools = null, options = {}) {
     logger.debug(`Gửi yêu cầu đến model: ${requestBody.model}`);
     logger.debug(`Số tin nhắn: ${messages.length}`);
 
-    const response = await openai.chat.completions.create(requestBody);
+    const requestOptions = {};
+    if (options.timeout !== undefined) requestOptions.timeout = options.timeout;
+    if (options.maxRetries !== undefined) requestOptions.maxRetries = options.maxRetries;
+
+    const response = await openai.chat.completions.create(requestBody, requestOptions);
 
     // Log thông tin sử dụng token
     if (response.usage) {

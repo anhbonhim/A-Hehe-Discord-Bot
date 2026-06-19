@@ -4,6 +4,100 @@
 const { search, formatSearchResults } = require('./webSearch');
 const logger = require('../utils/logger');
 
+const ROUTER_SYSTEM_PROMPT = `Bạn là bộ phân loại ý định (intent classifier) cực nhanh cho một Discord bot tiếng Việt. Nhiệm vụ DUY NHẤT: xác định tin nhắn có phải LỆNH HỆ THỐNG rõ ràng không, nếu có thì gọi đúng tool.
+
+QUY TẮC QUAN TRỌNG NHẤT:
+- Chỉ gọi tool khi người dùng đang RA LỆNH cho bot làm gì đó NGAY BÂY GIỜ.
+- KHÔNG gọi tool nếu người dùng: kể chuyện, tường thuật việc đã xảy ra, nói về người/vật khác, hỏi thông thường, than phiền, hoặc nhắc từ khóa lệnh trong ngữ cảnh không liên quan.
+- Nếu độ chắc chắn dưới 80%, KHÔNG gọi tool nào — để hệ thống fallback xử lý.
+- Chính tả sai, viết tắt, ngụ ý gián tiếp NHƯNG rõ ràng đang yêu cầu bot thì vẫn phải nhận diện đúng.
+
+DANH SÁCH TOOL:
+1. cmd_clear_history — xoá lịch sử trò chuyện kênh hiện tại
+2. cmd_model_info — xem thông tin model AI đang chạy
+3. cmd_change_reasoning — đổi mức suy luận (auto/low/medium/high)
+4. cmd_bot_help — xem tài liệu hướng dẫn sử dụng bot, các tính năng và danh sách lệnh
+
+VÍ DỤ ĐÚNG (PHẢI gọi tool):
+- "xoá lịch sử đi" → cmd_clear_history
+- "xoá giùm tui lịch sử hôm nay nha bot" → cmd_clear_history
+- "clr hist" → cmd_clear_history
+- "quên hết đi bot ơi" → cmd_clear_history
+- "mày đang chạy model gì vậy" → cmd_model_info
+- "xem mô hình" → cmd_model_info
+- "đổi reasoning lên cao đi" → cmd_change_reasoning(level=high)
+- "để chế độ suy nghĩ thấp thôi" → cmd_change_reasoning(level=low)
+- "hướng dẫn sử dụng" → cmd_bot_help
+- "bot này dùng thế nào" → cmd_bot_help
+- "help" → cmd_bot_help
+- "các lệnh của bot" → cmd_bot_help
+- "cứu tôi" → cmd_bot_help
+
+VÍ DỤ SAI (KHÔNG gọi tool nào):
+- "tôi mới xoá lịch sử chat với con gà" → câu kể chuyện về người/vật khác, không phải lệnh
+- "lịch sử chat của tao toàn tin nhắn vô bổ" → đang than phiền, không ra lệnh
+- "hôm qua tao đổi reasoning xong bị lỗi" → kể chuyện quá khứ
+- "model gì mà ngu vậy" → đang chê, không hỏi thông tin
+- "xoá giùm tao cái tin nhắn kia đi" → xoá 1 tin nhắn cụ thể, không phải xoá lịch sử
+- "tôi đâu có hỏi help đâu" → câu kể chuyện/đính chính, không yêu cầu xem hướng dẫn sử dụng
+- "bảo tôi cần trợ giúp không" → câu hỏi vẩn vơ, không yêu cầu xem hướng dẫn
+
+Nếu không khớp rõ ràng với case nào ở trên, KHÔNG gọi tool nào cả.`;
+
+/**
+ * Lấy định nghĩa tool và system prompt cho model Router (Stage 1)
+ * @returns {Object} { systemPrompt, tools }
+ */
+function getRouterToolDefinitions() {
+  return {
+    systemPrompt: ROUTER_SYSTEM_PROMPT,
+    tools: [
+      {
+        type: 'function',
+        function: {
+          name: 'cmd_clear_history',
+          description: 'Lệnh xóa lịch sử trò chuyện. Người dùng yêu cầu dọn dẹp, xóa sạch, reset lịch sử chat.',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'cmd_model_info',
+          description: 'Lệnh xem thông tin model AI đang sử dụng. Người dùng hỏi model gì, xem thông số model.',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'cmd_change_reasoning',
+          description: 'Lệnh thay đổi mức độ suy luận (reasoning effort). Người dùng yêu cầu đổi reasoning sang tự động (auto), thấp (low), trung bình (medium) hoặc cao (high).',
+          parameters: {
+            type: 'object',
+            properties: {
+              level: {
+                type: 'string',
+                enum: ['auto', 'low', 'medium', 'high'],
+                description: 'Mức độ reasoning muốn đổi sang.',
+              },
+            },
+            required: ['level'],
+          },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'cmd_bot_help',
+          description: 'Lệnh xem tài liệu hướng dẫn sử dụng, trợ giúp, các lệnh của bot, cách dùng bot.',
+          parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+    ]
+  };
+}
+
 /**
  * Lấy danh sách định nghĩa tool cho OpenAI function calling
  * @returns {Array<Object>} Mảng tool definitions
@@ -160,4 +254,4 @@ async function executeTool(toolCall) {
   }
 }
 
-module.exports = { getToolDefinitions, executeTool };
+module.exports = { getToolDefinitions, getRouterToolDefinitions, executeTool };

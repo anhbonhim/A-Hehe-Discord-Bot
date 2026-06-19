@@ -69,162 +69,160 @@ module.exports = {
       return message.reply(helpDescription);
     }
 
-    // Kiểm tra từ khóa hỏi về hướng dẫn sử dụng bot
     if (userContent) {
       const normalizedContent = userContent.toLowerCase().trim();
-      const helpKeywords = [
-        'help', 'bot', 'lệnh', 'lenh', 'command',
-        'hướng dẫn', 'huong dan',
-        'cách dùng', 'cach dung',
-        'tính năng', 'tinh nang',
-        'trợ giúp', 'tro giup'
-      ];
+
+      // ==========================================
+      // STAGE 1: ROUTER MODEL (XỬ LÝ LỆNH HỆ THỐNG)
+      // ==========================================
+      const { getRouterToolDefinitions } = require('../services/toolManager');
+      const { systemPrompt: routerSystemPrompt, tools: routerToolsList } = getRouterToolDefinitions();
       
-      const isAskingForHelp = helpKeywords.some(keyword => normalizedContent.includes(keyword));
-                             
-      logger.debug(`[DEBUG] isAskingForHelp: ${isAskingForHelp} (normalizedContent: "${normalizedContent}")`);
-
-      if (isAskingForHelp) {
-        return message.reply({ embeds: [getBotHelpEmbed(client)] });
-      }
-
-      // 1. Lệnh Xóa lịch sử (clear) - Hỗ trợ gõ nhầm và sai chính tả, giới hạn <= 20 ký tự để tránh nhầm lệnh
-      const isClear = (
-        /clear|reset|xoá|xóa|dọn|don|xoa/i.test(normalizedContent) && 
-        /chat|history|lịch sử|lich su|dẹp|dep|sạch|sach/i.test(normalizedContent)
-      ) || /^(clear|reset|xoá|xóa|xoa|clearr|reset|resett)$/i.test(normalizedContent);
-
-      if (isClear && normalizedContent.length <= 20) {
-        const hadHistory = conversationManager.clearHistory(message.channel.id);
-        const stats = conversationManager.getStats();
+      try {
+        const routerMessages = [
+          { role: 'system', content: routerSystemPrompt },
+          { role: 'user', content: userContent }
+        ];
         
-        const embed = new EmbedBuilder()
-          .setColor(hadHistory ? 0x57f287 : 0xfee75c)
-          .setTitle(hadHistory ? '🗑️ Đã xoá lịch sử hội thoại' : 'ℹ️ Không có lịch sử')
-          .setDescription(
-            hadHistory
-              ? 'Lịch sử hội thoại của kênh này đã được xoá. Cuộc trò chuyện mới sẽ bắt đầu từ đầu.'
-              : 'Kênh này chưa có lịch sử hội thoại nào.'
-          )
-          .addFields({
-            name: '📊 Thống kê',
-            value: `Hội thoại đang hoạt động: **${stats.activeConversations}** kênh\nTổng tin nhắn trong bộ nhớ: **${stats.totalMessages}**`,
-          })
-          .setTimestamp()
-          .setFooter({ text: `Thực hiện bởi ${message.author.tag}` });
+        logger.debug(`[STAGE 1] Gọi Router model để nhận diện lệnh...`);
+        const routerResponse = await chat(routerMessages, routerToolsList, {
+          model: 'openai/gpt-oss-20b', // Model nhẹ, cùng họ với model chính
+          timeout: 4000, // Thất bại nhanh sau 4s
+          maxRetries: 0,
+          temperature: 0.1,
+          maxTokens: 1000,
+          reasoningEffort: 'low'
+        });
 
-        await message.reply({ embeds: [embed] });
+        const routerMessage = routerResponse.choices?.[0]?.message;
         
-        try {
-          const { updatePresence } = require('./ready');
-          await updatePresence(client, message.channel.id);
-        } catch (err) {
-          logger.debug(`Lỗi cập nhật status bot sau khi clear: ${err.message}`);
-        }
-        return;
-      }
+        if (routerMessage?.tool_calls && routerMessage.tool_calls.length > 0) {
+          const toolCall = routerMessage.tool_calls[0];
+          const funcName = toolCall.function.name;
+          let args = {};
+          try { args = JSON.parse(toolCall.function.arguments || '{}'); } catch(e) {}
+          
+          logger.info(`[STAGE 1] QUYẾT ĐỊNH: KÍCH HOẠT TOOL [${funcName}] | Tham số: ${JSON.stringify(args)} | Tin nhắn gốc: "${userContent}"`);
+          
+          if (funcName === 'cmd_clear_history') {
+            const hadHistory = conversationManager.clearHistory(message.channel.id);
+            const stats = conversationManager.getStats();
+            
+            const embed = new EmbedBuilder()
+              .setColor(hadHistory ? 0x57f287 : 0xfee75c)
+              .setTitle(hadHistory ? '🗑️ Đã xoá lịch sử hội thoại' : 'ℹ️ Không có lịch sử')
+              .setDescription(
+                hadHistory
+                  ? 'Lịch sử hội thoại của kênh này đã được xoá. Cuộc trò chuyện mới sẽ bắt đầu từ đầu.'
+                  : 'Kênh này chưa có lịch sử hội thoại nào.'
+              )
+              .addFields({
+                name: '📊 Thống kê',
+                value: `Hội thoại đang hoạt động: **${stats.activeConversations}** kênh\nTổng tin nhắn trong bộ nhớ: **${stats.totalMessages}**`,
+              })
+              .setTimestamp()
+              .setFooter({ text: `Thực hiện bởi ${message.author.tag}` });
 
-      // 2. Lệnh Xem thông tin model hiện tại - Hỗ trợ gõ sai chính tả, giới hạn <= 20 ký tự
-      const isModelInfo = /model|mô hình|mo hinh|moddel|mode/i.test(normalizedContent) && normalizedContent.length <= 20;
-      if (isModelInfo) {
-        const { getModelInfo } = require('../services/aiService');
-        const info = getModelInfo();
-        const REASONING_LABELS = {
-          auto: 'Tự động (model tự quyết định)',
-          low: 'Thấp — tốc độ nhanh, tiết kiệm',
-          medium: 'Trung bình',
-          high: 'Cao — suy luận sâu sắc',
-        };
-        const reasoningLabel = REASONING_LABELS[info.reasoningEffort] || info.reasoningEffort;
-
-        const embed = new EmbedBuilder()
-          .setColor(0x5865f2)
-          .setTitle('Thông tin Model AI')
-          .addFields(
-            { name: 'Model', value: `\`${info.name}\``, inline: false },
-            {
-              name: 'Thông số',
-              value:
-                `Context window: **${info.maxContextTokens.toLocaleString()}** tokens\n` +
-                `Max response: **${info.maxResponseTokens.toLocaleString()}** tokens\n` +
-                `Temperature: **${info.temperature}**\n` +
-                `Reasoning: **${reasoningLabel}**`,
-            },
-            {
-              name: 'Cách thay đổi',
-              value:
-                'Nhắn tin theo cú pháp:\n' +
-                '• `đổi reasoning <auto|low|medium|high>` — Thay đổi mức độ suy luận.\n' +
-                '*Lưu ý: Tên model chính cố định theo cấu hình hệ thống (.env của Host), người dùng không thể tự thay đổi.*',
+            await message.reply({ embeds: [embed] });
+            
+            try {
+              const { updatePresence } = require('./ready');
+              await updatePresence(client, message.channel.id);
+            } catch (err) {
+              logger.debug(`Lỗi cập nhật status bot sau khi clear: ${err.message}`);
             }
-          )
-          .setTimestamp();
+            return;
+          } else if (funcName === 'cmd_model_info') {
+            const { getModelInfo } = require('../services/aiService');
+            const info = getModelInfo();
+            const REASONING_LABELS = {
+              auto: 'Tự động (model tự quyết định)',
+              low: 'Thấp — tốc độ nhanh, tiết kiệm',
+              medium: 'Trung bình',
+              high: 'Cao — suy luận sâu sắc',
+            };
+            const reasoningLabel = REASONING_LABELS[info.reasoningEffort] || info.reasoningEffort;
 
-        return message.reply({ embeds: [embed] });
-      }
+            const embed = new EmbedBuilder()
+              .setColor(0x5865f2)
+              .setTitle('Thông tin Model AI')
+              .addFields(
+                { name: 'Model', value: `\`${info.name}\``, inline: false },
+                {
+                  name: 'Thông số',
+                  value:
+                    `Context window: **${info.maxContextTokens.toLocaleString()}** tokens\n` +
+                    `Max response: **${info.maxResponseTokens.toLocaleString()}** tokens\n` +
+                    `Temperature: **${info.temperature}**\n` +
+                    `Reasoning: **${reasoningLabel}**`,
+                },
+                {
+                  name: 'Cách thay đổi',
+                  value:
+                    'Nhắn tin theo cú pháp:\n' +
+                    '• `đổi reasoning <auto|low|medium|high>` — Thay đổi mức độ suy luận.\n' +
+                    '*Lưu ý: Tên model chính cố định theo cấu hình hệ thống (.env của Host), người dùng không thể tự thay đổi.*',
+                }
+              )
+              .setTimestamp();
 
-      // 3. Lệnh Đổi model (bị vô hiệu hoá đối với user) - Nhận diện cả lỗi chính tả moddel, mode
-      const changeModelMatch = normalizedContent.match(/\b(đổi|doi|chuyển|chuyen|sử dụng|su dung|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(model|mô hình|mo hinh|moddel|mode)\s+([a-zA-Z0-9_\-\/:\.]+)/i);
-      if (changeModelMatch) {
-        return message.reply('❌ Lỗi: Bạn không có quyền thay đổi model AI. Tên model chính được cấu hình cố định bởi Host trong tệp `.env`. Bạn chỉ được phép thay đổi mức độ suy luận bằng lệnh: `đổi reasoning <mức>` (ví dụ: `đổi reasoning high`).');
-      }
+            return message.reply({ embeds: [embed] });
+          } else if (funcName === 'cmd_change_reasoning') {
+            let newReasoning = args.level;
+            const validLevels = ['auto', 'low', 'medium', 'high'];
+            
+            if (!validLevels.includes(newReasoning)) {
+               return message.reply(`❌ Lỗi: Mức độ reasoning '${newReasoning}' không hợp lệ.`);
+            }
 
-      // 4. Lệnh Đổi mức suy luận (change reasoning effort) - Hỗ trợ gõ sai chính tả và tiếng Việt
-      const changeReasoningMatch = normalizedContent.match(/\b(đổi|doi|chuyển|chuyen|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(reasonings?|suy\s*luận|suy\s*luan|reason|reasonin)\s+(auto|autoo|low|loww|medium|high|hight|tự\s*động|tu\s*dong|thấp|thap|trung\s*bình|trung\s*binh|cao)/i);
-      if (changeReasoningMatch) {
-        let newReasoning = changeReasoningMatch[4].trim().toLowerCase();
-        
-        // Ánh xạ các từ khóa tiếng Việt và lỗi chính tả phổ biến
-        if (newReasoning.includes('tự') || newReasoning.includes('dong') || newReasoning.includes('auto')) {
-          newReasoning = 'auto';
-        } else if (newReasoning.includes('thấp') || newReasoning.includes('thap') || newReasoning.includes('low')) {
-          newReasoning = 'low';
-        } else if (newReasoning.includes('trung') || newReasoning.includes('binh') || newReasoning.includes('medium')) {
-          newReasoning = 'medium';
-        } else if (newReasoning.includes('cao') || newReasoning.includes('high')) {
-          newReasoning = 'high';
+            const { getModelInfo, setReasoningEffort } = require('../services/aiService');
+            const oldInfo = getModelInfo();
+            
+            try {
+              setReasoningEffort(newReasoning);
+              
+              const REASONING_LABELS = {
+                auto: 'Tự động (model tự quyết định)',
+                low: 'Thấp — tốc độ nhanh, tiết kiệm',
+                medium: 'Trung bình',
+                high: 'Cao — suy luận sâu sắc',
+              };
+              const oldLabel = REASONING_LABELS[oldInfo.reasoningEffort] || oldInfo.reasoningEffort;
+              const newLabel = REASONING_LABELS[newReasoning];
+              
+              const embed = new EmbedBuilder()
+                .setColor(0x57f287)
+                .setTitle('Đã cập nhật cấu hình AI')
+                .addFields(
+                  {
+                    name: 'Thay đổi',
+                    value: `Reasoning: ${oldLabel} → **${newLabel}**`,
+                  },
+                  {
+                    name: 'Cấu hình hiện tại',
+                    value:
+                      `Model: \`${oldInfo.name}\`\n` +
+                      `Context: ${oldInfo.maxContextTokens.toLocaleString()} tokens\n` +
+                      `Max response: ${oldInfo.maxResponseTokens.toLocaleString()} tokens\n` +
+                      `Temperature: ${oldInfo.temperature}\n` +
+                      `Reasoning: **${newLabel}**`,
+                  }
+                )
+                .setTimestamp()
+                .setFooter({ text: `Thay đổi bởi ${message.author.tag}` });
+
+              return message.reply({ embeds: [embed] });
+            } catch (err) {
+              return message.reply(`❌ Lỗi: ${err.message}`);
+            }
+          } else if (funcName === 'cmd_bot_help') {
+            return message.reply({ embeds: [getBotHelpEmbed(client)] });
+          }
+        } else {
+          logger.info(`[STAGE 1] QUYẾT ĐỊNH: KHÔNG GỌI TOOL (Chuyển tiếp Stage 2) | Phản hồi: "${routerMessage?.content || ''}" | Tin nhắn gốc: "${userContent}"`);
         }
-
-        const { getModelInfo, setReasoningEffort } = require('../services/aiService');
-        const oldInfo = getModelInfo();
-        
-        try {
-          setReasoningEffort(newReasoning);
-          
-          const REASONING_LABELS = {
-            auto: 'Tự động (model tự quyết định)',
-            low: 'Thấp — tốc độ nhanh, tiết kiệm',
-            medium: 'Trung bình',
-            high: 'Cao — suy luận sâu sắc',
-          };
-          const oldLabel = REASONING_LABELS[oldInfo.reasoningEffort] || oldInfo.reasoningEffort;
-          const newLabel = REASONING_LABELS[newReasoning];
-          
-          const embed = new EmbedBuilder()
-            .setColor(0x57f287)
-            .setTitle('Đã cập nhật cấu hình AI')
-            .addFields(
-              {
-                name: 'Thay đổi',
-                value: `Reasoning: ${oldLabel} → **${newLabel}**`,
-              },
-              {
-                name: 'Cấu hình hiện tại',
-                value:
-                  `Model: \`${oldInfo.name}\`\n` +
-                  `Context: ${oldInfo.maxContextTokens.toLocaleString()} tokens\n` +
-                  `Max response: ${oldInfo.maxResponseTokens.toLocaleString()} tokens\n` +
-                  `Temperature: ${oldInfo.temperature}\n` +
-                  `Reasoning: **${newLabel}**`,
-              }
-            )
-            .setTimestamp()
-            .setFooter({ text: `Thay đổi bởi ${message.author.tag}` });
-
-          return message.reply({ embeds: [embed] });
-        } catch (err) {
-          return message.reply(`❌ Lỗi: ${err.message}`);
-        }
+      } catch (routerErr) {
+        logger.error(`[STAGE 1] LỖI HOẶC TIMEOUT ROUTER (Tự động fallback Stage 2): ${routerErr.message}`);
       }
 
       // 5. Lệnh Tìm kiếm trực tiếp - Hỗ trợ tim, tìm, google, tra, tìm hộ...
