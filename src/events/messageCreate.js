@@ -90,7 +90,7 @@ module.exports = {
           timeout: 4000, // Thất bại nhanh sau 4s
           maxRetries: 0,
           temperature: 0.1,
-          maxTokens: 1000,
+          maxTokens: 4000,
           reasoningEffort: 'low'
         });
 
