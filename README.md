@@ -98,29 +98,36 @@ npm run dev
 
 ---
 
-## 📝 Danh sách lệnh
+## 📝 Cách tương tác và Danh sách lệnh
 
-### Prefix Commands
+Bot hỗ trợ song song hai cách tương tác: qua **Tương tác trực tiếp bằng tin nhắn** (tag bot `@hehe`, nhắn prefix `!ai`, hoặc nhắn trực tiếp trong DM) hoặc **Slash Commands (/)**.
 
-| Lệnh/Keyword | Mô tả |
-|-------|--------|
-| `!ai <câu hỏi>` | Hỏi AI một câu hỏi |
-| `@Bot <câu hỏi>` | Mention bot kèm câu hỏi |
-| `!ai` + đính kèm ảnh | Phân tích hình ảnh (Sử dụng Gemini API/OpenRouter) |
-| `!ai` + đính kèm file | Đọc và phân tích tài liệu |
-| Thao tác **Reply** bot | Trả lời tin nhắn bất kỳ của bot (bot tự nhớ context) |
-| Keyword **waifu / hug / pat / kiss / slap ...** | Tự động trả về hình ảnh anime SFW ngẫu nhiên kèm hành động tương ứng |
-| Keyword **xwaifu / xneko / xtrap / xgif** | Tự động trả về hình ảnh anime NSFW (18+) tương ứng (Chỉ dùng được trong kênh NSFW) |
+### 💬 Tương tác bằng tin nhắn chat (Khuyên dùng)
 
-### Slash Commands
+Bạn chỉ cần nhắn tin (tag bot `@hehe` hoặc gõ prefix `!ai` hoặc nhắn tin trong DM) kèm nội dung mong muốn, bot sẽ tự động nhận diện ý định của bạn:
+
+| Yêu cầu của bạn | Ví dụ tin nhắn | Hành động của Bot |
+|-----------------|-------|-------------------|
+| **Hỏi AI thông thường** | `@hehe Giải thích lý thuyết tương đối` | Trả lời câu hỏi kèm ngữ cảnh hội thoại cũ |
+| **Xoá lịch sử hội thoại** | `@hehe clear` hoặc `@hehe xóa lịch sử` | Xoá bộ nhớ hội thoại của kênh hiện tại |
+| **Xem thông tin model** | `@hehe model` hoặc `@hehe xem mô hình` | Hiển thị thông số chi tiết model hiện tại |
+| **Đổi model AI** | `@hehe đổi model google/gemini-2.5-pro` | Đổi model chính sang model bất kỳ trên OpenRouter |
+| **Đổi mức suy luận** | `@hehe đổi reasoning high` | Thay đổi mức độ suy luận (`auto`/`low`/`medium`/`high`) |
+| **Tìm kiếm web trực tiếp** | `@hehe tìm kiếm tin tức công nghệ mới nhất` | Tìm kiếm Google/Tavily và trả về danh sách link nguồn |
+| **Đọc ảnh/tài liệu** | Gửi kèm ảnh/tài liệu + tag `@hehe` | Đọc nội dung PDF/DOCX/TXT hoặc mô tả hình ảnh đính kèm |
+| **Ảnh Anime dễ thương** | `@hehe waifu` hoặc `@hehe ôm` | Trả về ảnh anime ngẫu nhiên theo hành động (nekos.best) |
+| **Ảnh Anime 18+** | `@hehe xwaifu` hoặc `@hehe xneko` | Trả về ảnh anime 18+ ngẫu nhiên (chỉ hoạt động trong kênh NSFW) |
+
+### ⚡ Slash Commands (/)
+
+Nếu thích, bạn vẫn có thể sử dụng các lệnh slash truyền thống:
 
 | Lệnh | Mô tả |
 |-------|--------|
-| `/ask prompt:<câu hỏi>` | Hỏi AI (hỗ trợ chế độ riêng tư) |
-| `/search query:<từ khoá>` | Tìm kiếm thông tin trên web |
-| `/model` | Xem thông tin model AI hiện tại |
-| `/model name:<tên>` | Thay đổi model AI |
-| `/clear` | Xoá lịch sử hội thoại |
+| `/ask prompt:<câu hỏi>` | Hỏi AI (hỗ trợ tùy chọn gửi ẩn tin nhắn `private: true`) |
+| `/search query:<từ khoá>` | Tìm kiếm trực tiếp thông tin trên web |
+| `/model` | Xem hoặc thay đổi model AI và mức độ suy luận |
+| `/clear` | Xoá lịch sử hội thoại để bắt đầu lại cuộc trò chuyện mới |
 
 ---
 
