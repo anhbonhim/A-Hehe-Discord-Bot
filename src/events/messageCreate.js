@@ -87,6 +87,214 @@ module.exports = {
       if (isAskingForHelp) {
         return message.reply({ embeds: [getBotHelpEmbed(client)] });
       }
+
+      // 1. Lệnh Xóa lịch sử (clear)
+      const isClear = /^(clear|reset|xoá lịch sử|xóa lịch sử|xoá chat|xóa chat|xoá|xóa|clear history|clear chat|reset chat|reset history|dọn dẹp|don dep)$/i.test(normalizedContent);
+      if (isClear) {
+        const hadHistory = conversationManager.clearHistory(message.channel.id);
+        const stats = conversationManager.getStats();
+        
+        const embed = new EmbedBuilder()
+          .setColor(hadHistory ? 0x57f287 : 0xfee75c)
+          .setTitle(hadHistory ? '🗑️ Đã xoá lịch sử hội thoại' : 'ℹ️ Không có lịch sử')
+          .setDescription(
+            hadHistory
+              ? 'Lịch sử hội thoại của kênh này đã được xoá. Cuộc trò chuyện mới sẽ bắt đầu từ đầu.'
+              : 'Kênh này chưa có lịch sử hội thoại nào.'
+          )
+          .addFields({
+            name: '📊 Thống kê',
+            value: `Hội thoại đang hoạt động: **${stats.activeConversations}** kênh\nTổng tin nhắn trong bộ nhớ: **${stats.totalMessages}**`,
+          })
+          .setTimestamp()
+          .setFooter({ text: `Thực hiện bởi ${message.author.tag}` });
+
+        await message.reply({ embeds: [embed] });
+        
+        try {
+          const { updatePresence } = require('./ready');
+          await updatePresence(client, message.channel.id);
+        } catch (err) {
+          logger.debug(`Lỗi cập nhật status bot sau khi clear: ${err.message}`);
+        }
+        return;
+      }
+
+      // 2. Lệnh Xem thông tin model hiện tại (model info)
+      const isModelInfo = /^(model|mô hình|mo hinh|xem model|xem mô hình|xem mo hinh|thông tin model|thong tin model|thông tin mô hình|check model)$/i.test(normalizedContent);
+      if (isModelInfo) {
+        const { getModelInfo } = require('../services/aiService');
+        const info = getModelInfo();
+        const REASONING_LABELS = {
+          auto: 'Tự động (model tự quyết định)',
+          low: 'Thấp — tốc độ nhanh, tiết kiệm',
+          medium: 'Trung bình',
+          high: 'Cao — suy luận sâu sắc',
+        };
+        const reasoningLabel = REASONING_LABELS[info.reasoningEffort] || info.reasoningEffort;
+
+        const embed = new EmbedBuilder()
+          .setColor(0x5865f2)
+          .setTitle('Thông tin Model AI')
+          .addFields(
+            { name: 'Model', value: `\`${info.name}\``, inline: false },
+            {
+              name: 'Thông số',
+              value:
+                `Context window: **${info.maxContextTokens.toLocaleString()}** tokens\n` +
+                `Max response: **${info.maxResponseTokens.toLocaleString()}** tokens\n` +
+                `Temperature: **${info.temperature}**\n` +
+                `Reasoning: **${reasoningLabel}**`,
+            },
+            {
+              name: 'Cách thay đổi',
+              value:
+                'Nhắn tin theo cú pháp:\n' +
+                '• `đổi model <tên_model>` (ví dụ: `đổi model google/gemini-2.5-pro`)\n' +
+                '• `đổi reasoning <auto|low|medium|high>`\n' +
+                'Danh sách model tại: https://openrouter.ai/models',
+            }
+          )
+          .setTimestamp();
+
+        return message.reply({ embeds: [embed] });
+      }
+
+      // 3. Lệnh Đổi model (change model)
+      const changeModelMatch = userContent.match(/\b(đổi|doi|chuyển|chuyen|sử dụng|su dung|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(model|mô hình|mo hinh)\s+([a-zA-Z0-9_\-\/:\.]+)/i);
+      if (changeModelMatch) {
+        const newModelName = changeModelMatch[4].trim().replace(/[\.\s]+$/, '');
+        const { getModelInfo, setModel } = require('../services/aiService');
+        const oldInfo = getModelInfo();
+        
+        try {
+          setModel(newModelName);
+          
+          const embed = new EmbedBuilder()
+            .setColor(0x57f287)
+            .setTitle('Đã cập nhật cấu hình AI')
+            .addFields(
+              {
+                name: 'Thay đổi',
+                value: `Model: \`${oldInfo.name}\` → \`${newModelName}\``,
+              },
+              {
+                name: 'Cấu hình hiện tại',
+                value:
+                  `Model: \`${newModelName}\`\n` +
+                  `Context: ${oldInfo.maxContextTokens.toLocaleString()} tokens\n` +
+                  `Max response: ${oldInfo.maxResponseTokens.toLocaleString()} tokens\n` +
+                  `Temperature: ${oldInfo.temperature}\n` +
+                  `Reasoning: **${oldInfo.reasoningEffort}**`,
+              }
+            )
+            .setTimestamp()
+            .setFooter({ text: `Thay đổi bởi ${message.author.tag}` });
+
+          return message.reply({ embeds: [embed] });
+        } catch (err) {
+          return message.reply(`❌ Lỗi khi đổi model: ${err.message}`);
+        }
+      }
+
+      // 4. Lệnh Đổi mức suy luận (change reasoning effort)
+      const changeReasoningMatch = userContent.match(/\b(đổi|doi|chuyển|chuyen|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(reasoning|suy luận|suy luan)\s+(auto|low|medium|high)/i);
+      if (changeReasoningMatch) {
+        const newReasoning = changeReasoningMatch[4].trim().toLowerCase();
+        const { getModelInfo, setReasoningEffort } = require('../services/aiService');
+        const oldInfo = getModelInfo();
+        
+        try {
+          setReasoningEffort(newReasoning);
+          
+          const REASONING_LABELS = {
+            auto: 'Tự động (model tự quyết định)',
+            low: 'Thấp — tốc độ nhanh, tiết kiệm',
+            medium: 'Trung bình',
+            high: 'Cao — suy luận sâu sắc',
+          };
+          const oldLabel = REASONING_LABELS[oldInfo.reasoningEffort] || oldInfo.reasoningEffort;
+          const newLabel = REASONING_LABELS[newReasoning];
+          
+          const embed = new EmbedBuilder()
+            .setColor(0x57f287)
+            .setTitle('Đã cập nhật cấu hình AI')
+            .addFields(
+              {
+                name: 'Thay đổi',
+                value: `Reasoning: ${oldLabel} → **${newLabel}**`,
+              },
+              {
+                name: 'Cấu hình hiện tại',
+                value:
+                  `Model: \`${oldInfo.name}\`\n` +
+                  `Context: ${oldInfo.maxContextTokens.toLocaleString()} tokens\n` +
+                  `Max response: ${oldInfo.maxResponseTokens.toLocaleString()} tokens\n` +
+                  `Temperature: ${oldInfo.temperature}\n` +
+                  `Reasoning: **${newLabel}**`,
+              }
+            )
+            .setTimestamp()
+            .setFooter({ text: `Thay đổi bởi ${message.author.tag}` });
+
+          return message.reply({ embeds: [embed] });
+        } catch (err) {
+          return message.reply(`❌ Lỗi: ${err.message}`);
+        }
+      }
+
+      // 5. Lệnh Tìm kiếm trực tiếp (direct search)
+      const searchMatch = userContent.match(/^(tìm kiếm|tim kiem|search|tra cứu|tra cuu)\s+(.+)$/i);
+      if (searchMatch) {
+        const query = searchMatch[2].trim();
+        await message.channel.sendTyping();
+        try {
+          const { search } = require('../services/webSearch');
+          const searchResult = await search(query, 5);
+          
+          const embed = new EmbedBuilder()
+            .setColor(0x00ae86)
+            .setTitle(`🔍 Kết quả tìm kiếm: "${query}"`)
+            .setTimestamp()
+            .setFooter({ text: `Yêu cầu bởi ${message.author.tag}` });
+
+          if (searchResult.answer) {
+            embed.setDescription(
+              searchResult.answer.length > 400
+                ? searchResult.answer.substring(0, 400) + '...'
+                : searchResult.answer
+            );
+          }
+
+          if (searchResult.results.length > 0) {
+            const resultsText = searchResult.results
+              .slice(0, 5)
+              .map((result, index) => {
+                const title = result.title.length > 80
+                  ? result.title.substring(0, 80) + '...'
+                  : result.title;
+                const snippet = result.snippet.length > 150
+                  ? result.snippet.substring(0, 150) + '...'
+                  : result.snippet;
+
+                return `**${index + 1}. [${title}](${result.url})**\n${snippet}`;
+              })
+              .join('\n\n');
+
+            embed.addFields({
+              name: '📋 Kết quả',
+              value: resultsText || 'Không tìm thấy kết quả.',
+            });
+          } else {
+            embed.setDescription('Không tìm thấy kết quả nào cho từ khoá này.');
+          }
+
+          return message.reply({ embeds: [embed] });
+        } catch (error) {
+          logger.error(`Lỗi tìm kiếm tự động: ${error.message}`);
+          return message.reply('❌ Không thể thực hiện tìm kiếm. Vui lòng thử lại sau.');
+        }
+      }
     }
 
     // Kiểm tra từ khóa random ảnh anime
