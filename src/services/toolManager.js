@@ -17,6 +17,7 @@ DANH SÁCH TOOL:
 2. cmd_model_info — xem thông tin model AI đang chạy
 3. cmd_change_reasoning — đổi mức suy luận (auto/low/medium/high)
 4. cmd_bot_help — xem tài liệu hướng dẫn sử dụng bot, các tính năng và danh sách lệnh
+5. cmd_anime_image — hiển thị ảnh anime ngẫu nhiên hoặc ảnh anime theo hành động yêu cầu (waifu, neko, ôm, hôn, nắm tay, cắn, vẫy, nhảy, tát, ...). Có tham số category để chọn thể loại.
 
 VÍ DỤ ĐÚNG (PHẢI gọi tool):
 - "xoá lịch sử đi" → cmd_clear_history
@@ -32,6 +33,12 @@ VÍ DỤ ĐÚNG (PHẢI gọi tool):
 - "help" → cmd_bot_help
 - "các lệnh của bot" → cmd_bot_help
 - "cứu tôi" → cmd_bot_help
+- "gửi ảnh waifu đi" → cmd_anime_image(category="waifu")
+- "ôm tôi đi" → cmd_anime_image(category="hug")
+- "tôi bảo là nắm tay" → cmd_anime_image(category="handhold")
+- "danh sách anime" → cmd_anime_image(category="list")
+- "anime list" → cmd_anime_image(category="list")
+- "xwaifu" → cmd_anime_image(category="xwaifu")
 
 VÍ DỤ SAI (KHÔNG gọi tool nào):
 - "tôi mới xoá lịch sử chat với con gà" → câu kể chuyện về người/vật khác, không phải lệnh
@@ -41,6 +48,8 @@ VÍ DỤ SAI (KHÔNG gọi tool nào):
 - "xoá giùm tao cái tin nhắn kia đi" → xoá 1 tin nhắn cụ thể, không phải xoá lịch sử
 - "tôi đâu có hỏi help đâu" → câu kể chuyện/đính chính, không yêu cầu xem hướng dẫn sử dụng
 - "bảo tôi cần trợ giúp không" → câu hỏi vẩn vơ, không yêu cầu xem hướng dẫn
+- "tao ghét xem anime" → đang bày tỏ quan điểm, không yêu cầu ảnh anime
+- "lắm tay" → từ gõ sai/vô nghĩa, không chắc chắn ý định nên không gọi tool
 
 Nếu không khớp rõ ràng với case nào ở trên, KHÔNG gọi tool nào cả.`;
 
@@ -92,6 +101,32 @@ function getRouterToolDefinitions() {
           name: 'cmd_bot_help',
           description: 'Lệnh xem tài liệu hướng dẫn sử dụng, trợ giúp, các lệnh của bot, cách dùng bot.',
           parameters: { type: 'object', properties: {}, required: [] },
+        },
+      },
+      {
+        type: 'function',
+        function: {
+          name: 'cmd_anime_image',
+          description: 'Lệnh hiển thị ảnh anime ngẫu nhiên hoặc ảnh anime theo hành động yêu cầu (waifu, neko, ôm, hôn, nắm tay, ...).',
+          parameters: {
+            type: 'object',
+            properties: {
+              category: {
+                type: 'string',
+                description: 'Thể loại ảnh anime muốn hiển thị (waifu, neko, hug, kiss, pat, handhold, slap, cry, smile, dance, xwaifu, xneko, list, ...).',
+                enum: [
+                  'waifu', 'neko', 'shinobu', 'megumin', 
+                  'bully', 'cuddle', 'cry', 'hug', 'awoo', 
+                  'kiss', 'lick', 'pat', 'smug', 'bonk', 
+                  'yeet', 'blush', 'smile', 'wave', 'highfive', 
+                  'handhold', 'nom', 'bite', 'glomp', 'slap', 
+                  'happy', 'wink', 'poke', 'dance', 'cringe', 'kick',
+                  'xwaifu', 'xneko', 'xtrap', 'xgif', 'list'
+                ]
+              }
+            },
+            required: ['category']
+          },
         },
       },
     ]

@@ -350,6 +350,65 @@ function getCategoryList(channel = null) {
   return list;
 }
 
+/**
+ * Gửi trực tiếp ảnh anime hoặc danh mục dựa trên category được cung cấp bởi AI Router
+ * @param {import('discord.js').Message} message 
+ * @param {string} category 
+ * @returns {Promise<boolean>}
+ */
+async function sendAnimeImage(message, category) {
+  if (category === 'list') {
+    const listEmbed = new EmbedBuilder()
+      .setColor(0xE879F9)
+      .setTitle('🎴 Danh sách ảnh Anime')
+      .setDescription(
+        'Tag tôi kèm một trong các từ khóa sau để nhận ảnh anime ngẫu nhiên:\n\n' +
+        getCategoryList(message.channel) +
+        '\n\n**Ví dụ:** `@bot waifu`, `@bot neko`, `@bot hug`, `@bot ôm`'
+      )
+      .setFooter({ text: 'Nguồn: nekos.best API' })
+      .setTimestamp();
+    await message.reply({ embeds: [listEmbed] });
+    return true;
+  }
+
+  const isNSFWCategory = !!NSFW_CATEGORIES[category];
+  const isNSFWChannel = message.channel.nsfw || !message.guild;
+
+  if (isNSFWCategory && !isNSFWChannel) {
+    await message.reply('❌ Cảnh báo: Lệnh này chứa nội dung nhạy cảm (NSFW) và chỉ có thể sử dụng trong kênh được gắn nhãn NSFW!');
+    return true;
+  }
+
+  try {
+    const imageUrl = await fetchRandomImage(category);
+    const catInfo = SFW_CATEGORIES[category] || NSFW_CATEGORIES[category] || { emoji: '🎴', label: category };
+    const randomColor = isNSFWCategory ? 0xFF0000 : EMBED_COLORS[Math.floor(Math.random() * EMBED_COLORS.length)];
+
+    const embed = new EmbedBuilder()
+      .setColor(randomColor)
+      .setTitle(`${catInfo.emoji} ${catInfo.label}`)
+      .setImage(imageUrl)
+      .setFooter({
+        text: `Yêu cầu bởi ${message.author.username} • ${isNSFWCategory ? 'nekobot.xyz' : 'nekos.best'}`,
+        iconURL: message.author.displayAvatarURL({ dynamic: true }),
+      })
+      .setTimestamp();
+
+    await message.reply({ embeds: [embed] });
+
+    logger.discord(
+      `${message.author.tag} yêu cầu ảnh anime: ${category} (${isNSFWCategory ? 'NSFW' : 'SFW'})`
+    );
+
+    return true;
+  } catch (error) {
+    logger.error(`[AnimeImage] Lỗi lấy ảnh ${category}: ${error.message}`);
+    await message.reply(`❌ Không thể lấy ảnh **${category}**. Thử lại sau nhé!`);
+    return true;
+  }
+}
+
 // ============================================================
 // XUẤT MODULE
 // ============================================================
@@ -358,6 +417,7 @@ module.exports = {
   fetchRandomImage,
   detectAnimeKeyword,
   handleAnimeImage,
+  sendAnimeImage,
   getCategoryList,
   SFW_CATEGORIES,
   NSFW_CATEGORIES,

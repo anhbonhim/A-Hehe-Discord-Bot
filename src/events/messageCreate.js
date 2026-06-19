@@ -10,7 +10,7 @@ const { isImage, buildImageContent, getImageAnalysisPrompt } = require('../servi
 const { isDocument, extractContent } = require('../services/documentParser');
 const splitMessage = require('../utils/splitMessage');
 const logger = require('../utils/logger');
-const { handleAnimeImage, getCategoryList } = require('../services/animeImage');
+const { sendAnimeImage } = require('../services/animeImage');
 const { formatTablesForDiscord } = require('../utils/formatDiscord');
 const { hasGeminiKey, analyzeImagesWithGemini } = require('../services/geminiVision');
 const { getBotHelpEmbed } = require('../utils/helpEmbed');
@@ -217,6 +217,10 @@ module.exports = {
             }
           } else if (funcName === 'cmd_bot_help') {
             return message.reply({ embeds: [getBotHelpEmbed(client)] });
+          } else if (funcName === 'cmd_anime_image') {
+            const category = args.category;
+            await sendAnimeImage(message, category);
+            return;
           }
         } else {
           logger.info(`[STAGE 1] QUYẾT ĐỊNH: KHÔNG GỌI TOOL (Chuyển tiếp Stage 2) | Phản hồi: "${routerMessage?.content || ''}" | Tin nhắn gốc: "${userContent}"`);
@@ -280,32 +284,7 @@ module.exports = {
       }
     }
 
-    // Kiểm tra từ khóa random ảnh anime
-    // Ví dụ: "@bot waifu", "@bot neko", "@bot hug", "@bot ôm"
-    if (userContent) {
-      const normalizedContent = userContent.toLowerCase().trim();
-
-      // Hiện danh sách categories nếu user gõ "anime list", "danh sách anime", vv.
-      const isAnimeList = /^(anime\s+list|anime\s+help|anime|danh\s*sách\s*anime|danh\s*sach\s*anime|list\s*anime)$/i.test(normalizedContent);
-      if (isAnimeList) {
-        const { EmbedBuilder: EB } = require('discord.js');
-        const listEmbed = new EB()
-          .setColor(0xE879F9)
-          .setTitle('🎴 Danh sách ảnh Anime')
-          .setDescription(
-            'Tag tôi kèm một trong các từ khóa sau để nhận ảnh anime ngẫu nhiên:\n\n' +
-            getCategoryList(message.channel) +
-            '\n\n**Ví dụ:** `@bot waifu`, `@bot neko`, `@bot hug`, `@bot ôm`'
-          )
-          .setFooter({ text: 'Nguồn: nekos.best API' })
-          .setTimestamp();
-        return message.reply({ embeds: [listEmbed] });
-      }
-
-      // Xử lý random ảnh anime nếu khớp từ khóa
-      const handled = await handleAnimeImage(message, userContent);
-      if (handled) return;
-    }
+    // (Lệnh random ảnh anime đã được tích hợp hoàn toàn vào Stage 1 AI Router thông qua tool cmd_anime_image)
 
     try {
       // Hiển thị trạng thái đang gõ
