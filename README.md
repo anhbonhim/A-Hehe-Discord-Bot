@@ -112,7 +112,6 @@ Bạn chỉ cần nhắn tin (tag bot `@hehe`, reply tin nhắn của bot, hoặ
 | **Hỏi AI thông thường** | `@hehe Giải thích lý thuyết tương đối` | Trả lời câu hỏi kèm ngữ cảnh hội thoại cũ |
 | **Xoá lịch sử hội thoại** | `@hehe clear` hoặc `@hehe xóa lịch sử` | Xoá bộ nhớ hội thoại của kênh hiện tại |
 | **Xem thông tin model** | `@hehe model` hoặc `@hehe xem mô hình` | Hiển thị thông số chi tiết model hiện tại |
-| **Đổi model AI** | `@hehe đổi model google/gemini-2.5-pro` | Đổi model chính sang model bất kỳ trên OpenRouter |
 | **Đổi mức suy luận** | `@hehe đổi reasoning high` | Thay đổi mức độ suy luận (`auto`/`low`/`medium`/`high`) |
 | **Tìm kiếm web trực tiếp** | `@hehe tìm kiếm tin tức công nghệ mới nhất` | Tìm kiếm Google/Tavily và trả về danh sách link nguồn |
 | **Đọc ảnh/tài liệu** | Gửi kèm ảnh/tài liệu + tag `@hehe` | Đọc nội dung PDF/DOCX/TXT hoặc mô tả hình ảnh đính kèm |

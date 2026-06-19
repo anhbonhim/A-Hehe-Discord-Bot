@@ -150,9 +150,8 @@ module.exports = {
               name: 'Cách thay đổi',
               value:
                 'Nhắn tin theo cú pháp:\n' +
-                '• `đổi model <tên_model>` (ví dụ: `đổi model google/gemini-2.5-pro`)\n' +
-                '• `đổi reasoning <auto|low|medium|high>`\n' +
-                'Danh sách model tại: https://openrouter.ai/models',
+                '• `đổi reasoning <auto|low|medium|high>` — Thay đổi mức độ suy luận.\n' +
+                '*Lưu ý: Tên model chính cố định theo cấu hình hệ thống (.env của Host), người dùng không thể tự thay đổi.*',
             }
           )
           .setTimestamp();
@@ -160,41 +159,10 @@ module.exports = {
         return message.reply({ embeds: [embed] });
       }
 
-      // 3. Lệnh Đổi model (change model)
+      // 3. Lệnh Đổi model (bị vô hiệu hoá đối với user)
       const changeModelMatch = userContent.match(/\b(đổi|doi|chuyển|chuyen|sử dụng|su dung|set|use|change)\s+(sang\s+|thành\s+|thanh\s+|to\s+)?(model|mô hình|mo hinh)\s+([a-zA-Z0-9_\-\/:\.]+)/i);
       if (changeModelMatch) {
-        const newModelName = changeModelMatch[4].trim().replace(/[\.\s]+$/, '');
-        const { getModelInfo, setModel } = require('../services/aiService');
-        const oldInfo = getModelInfo();
-        
-        try {
-          setModel(newModelName);
-          
-          const embed = new EmbedBuilder()
-            .setColor(0x57f287)
-            .setTitle('Đã cập nhật cấu hình AI')
-            .addFields(
-              {
-                name: 'Thay đổi',
-                value: `Model: \`${oldInfo.name}\` → \`${newModelName}\``,
-              },
-              {
-                name: 'Cấu hình hiện tại',
-                value:
-                  `Model: \`${newModelName}\`\n` +
-                  `Context: ${oldInfo.maxContextTokens.toLocaleString()} tokens\n` +
-                  `Max response: ${oldInfo.maxResponseTokens.toLocaleString()} tokens\n` +
-                  `Temperature: ${oldInfo.temperature}\n` +
-                  `Reasoning: **${oldInfo.reasoningEffort}**`,
-              }
-            )
-            .setTimestamp()
-            .setFooter({ text: `Thay đổi bởi ${message.author.tag}` });
-
-          return message.reply({ embeds: [embed] });
-        } catch (err) {
-          return message.reply(`❌ Lỗi khi đổi model: ${err.message}`);
-        }
+        return message.reply('❌ Lỗi: Bạn không có quyền thay đổi model AI. Tên model chính được cấu hình cố định bởi Host trong tệp `.env`. Bạn chỉ được phép thay đổi mức độ suy luận bằng lệnh: `đổi reasoning <mức>` (ví dụ: `đổi reasoning high`).');
       }
 
       // 4. Lệnh Đổi mức suy luận (change reasoning effort)

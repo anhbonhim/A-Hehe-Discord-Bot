@@ -44,7 +44,6 @@ function getBotHelpEmbed(client) {
         value: 
           `• \`clear\` hoặc \`xóa lịch sử\` — Xóa lịch sử trò chuyện của kênh.\n` +
           `• \`model\` hoặc \`xem mô hình\` — Xem thông số model AI đang chạy.\n` +
-          `• \`đổi model <tên>\` — Chuyển đổi model chính trên OpenRouter.\n` +
           `• \`đổi reasoning <auto|low|medium|high>\` — Thay đổi mức độ suy luận.\n` +
           `• \`tìm kiếm <nội dung>\` — Tra cứu Google/Tavily trực tiếp.`
       }
