@@ -1,0 +1,21 @@
+{
+  "name": "discord-ai-bot",
+  "version": "1.0.0",
+  "description": "Discord AI Chatbot powered by GPT-OSS 120B via OpenRouter with real-time fact checking",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy-commands": "node src/commands/deploy.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cheerio": "^1.0.0",
+    "discord.js": "^14.16.0",
+    "dotenv": "^16.4.0",
+    "mammoth": "^1.8.0",
+    "openai": "^4.80.0",
+    "pdf-parse": "^1.1.1",
+    "undici": "^7.0.0"
+  }
+}

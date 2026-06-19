@@ -1,0 +1,373 @@
+// src/services/animeImage.js
+// Lấy ảnh anime ngẫu nhiên từ API waifu.pics
+// Hỗ trợ nhiều thể loại SFW (Safe For Work)
+
+const { EmbedBuilder } = require('discord.js');
+const logger = require('../utils/logger');
+
+// ============================================================
+// CẤU HÌNH
+// ============================================================
+
+/** URL gốc của API nekos.best */
+const API_BASE = 'https://nekos.best/api/v2';
+
+/**
+ * Danh sách các thể loại SFW được hỗ trợ.
+ * Chia thành 2 nhóm: ảnh nhân vật và ảnh hành động (reaction).
+ */
+const SFW_CATEGORIES = {
+  // Ảnh nhân vật
+  waifu: { emoji: '💖', label: 'Waifu' },
+  neko: { emoji: '🐱', label: 'Neko' },
+  shinobu: { emoji: '🦋', label: 'Shinobu' },
+  megumin: { emoji: '💥', label: 'Megumin' },
+
+  // Ảnh hành động / reaction
+  bully: { emoji: '😈', label: 'Bully' },
+  cuddle: { emoji: '🤗', label: 'Cuddle' },
+  cry: { emoji: '😢', label: 'Cry' },
+  hug: { emoji: '🫂', label: 'Hug' },
+  awoo: { emoji: '🐺', label: 'Awoo' },
+  kiss: { emoji: '😘', label: 'Kiss' },
+  lick: { emoji: '👅', label: 'Lick' },
+  pat: { emoji: '🤚', label: 'Pat' },
+  smug: { emoji: '😏', label: 'Smug' },
+  bonk: { emoji: '🔨', label: 'Bonk' },
+  yeet: { emoji: '🏋️', label: 'Yeet' },
+  blush: { emoji: '😊', label: 'Blush' },
+  smile: { emoji: '😄', label: 'Smile' },
+  wave: { emoji: '👋', label: 'Wave' },
+  highfive: { emoji: '🙌', label: 'High Five' },
+  handhold: { emoji: '🤝', label: 'Handhold' },
+  nom: { emoji: '😋', label: 'Nom' },
+  bite: { emoji: '🦷', label: 'Bite' },
+  glomp: { emoji: '🤸', label: 'Glomp' },
+  slap: { emoji: '👋', label: 'Slap' },
+  happy: { emoji: '😃', label: 'Happy' },
+  wink: { emoji: '😉', label: 'Wink' },
+  poke: { emoji: '👉', label: 'Poke' },
+  dance: { emoji: '💃', label: 'Dance' },
+  cringe: { emoji: '😬', label: 'Cringe' },
+  kick: { emoji: '🦶', label: 'Kick' },
+};
+
+/**
+ * Danh sách các thể loại NSFW được hỗ trợ (qua Nekobot API)
+ */
+const NSFW_CATEGORIES = {
+  xwaifu: { emoji: '🔞', label: 'NSFW Waifu', nekobotType: 'hentai' },
+  xneko: { emoji: '🔞', label: 'NSFW Neko', nekobotType: 'hneko' },
+  xtrap: { emoji: '🔞', label: 'NSFW Trap', nekobotType: 'hentai' },
+  xgif: { emoji: '🔞', label: 'NSFW GIF', nekobotType: 'pgif' },
+};
+
+/**
+ * Danh sách từ khóa trigger để kích hoạt tính năng random ảnh.
+ * Key là từ khóa user có thể gõ, value là category tương ứng trên API.
+ */
+const TRIGGER_KEYWORDS = new Map([
+  // Từ khóa tiếng Việt và tiếng Anh
+  ['waifu', 'waifu'],
+  ['neko', 'neko'],
+  ['shinobu', 'shinobu'],
+  ['megumin', 'megumin'],
+  ['hug', 'hug'],
+  ['ôm', 'hug'],
+  ['kiss', 'kiss'],
+  ['hôn', 'kiss'],
+  ['pat', 'pat'],
+  ['xoa đầu', 'pat'],
+  ['vuốt đầu', 'pat'],
+  ['slap', 'slap'],
+  ['tát', 'slap'],
+  ['cry', 'cry'],
+  ['khóc', 'cry'],
+  ['smile', 'smile'],
+  ['cười', 'smile'],
+  ['dance', 'dance'],
+  ['nhảy', 'dance'],
+  ['blush', 'blush'],
+  ['bonk', 'bonk'],
+  ['bite', 'bite'],
+  ['cắn', 'bite'],
+  ['wave', 'wave'],
+  ['vẫy', 'wave'],
+  ['wink', 'wink'],
+  ['nháy mắt', 'wink'],
+  ['happy', 'happy'],
+  ['vui', 'happy'],
+  ['cuddle', 'cuddle'],
+  ['ôm ấp', 'cuddle'],
+  ['poke', 'poke'],
+  ['chọc', 'poke'],
+  ['kick', 'kick'],
+  ['đá', 'kick'],
+  ['highfive', 'highfive'],
+  ['high five', 'highfive'],
+  ['handhold', 'handhold'],
+  ['nắm tay', 'handhold'],
+  ['yeet', 'yeet'],
+  ['smug', 'smug'],
+  ['bully', 'bully'],
+  ['awoo', 'awoo'],
+  ['lick', 'lick'],
+  ['liếm', 'lick'],
+  ['nom', 'nom'],
+  ['glomp', 'glomp'],
+  ['cringe', 'cringe'],
+  
+  // Các lệnh NSFW (18+)
+  ['xwaifu', 'xwaifu'],
+  ['xneko', 'xneko'],
+  ['xtrap', 'xtrap'],
+  ['xgif', 'xgif'],
+]);
+
+/**
+ * Màu ngẫu nhiên cho embed, tạo cảm giác tươi sáng.
+ */
+const EMBED_COLORS = [
+  0xFF6B9D, // Hồng
+  0xC084FC, // Tím nhạt
+  0x60A5FA, // Xanh dương
+  0x34D399, // Xanh lá
+  0xFBBF24, // Vàng
+  0xF87171, // Đỏ nhạt
+  0xA78BFA, // Tím
+  0x38BDF8, // Xanh trời
+  0xFB923C, // Cam
+  0xE879F9, // Magenta
+];
+
+// ============================================================
+// HÀM GỌI API
+// ============================================================
+
+/**
+ * Ánh xạ các danh mục của waifu.pics sang nekos.best do nekos.best thiếu một số danh mục
+ * @param {string} category 
+ * @returns {string} Danh mục tương ứng trên nekos.best
+ */
+function mapCategoryToNekosBest(category) {
+  const mapping = {
+    shinobu: 'waifu',
+    megumin: 'waifu',
+    bully: 'slap',
+    awoo: 'nyan',
+    lick: 'nom', // liếm -> măm măm/ăn
+    glomp: 'cuddle', // glomp -> ôm ấp
+  };
+  return mapping[category] || category;
+}
+
+/**
+ * Lấy URL ảnh anime 18+ từ Nekobot API.
+ * @param {string} type - Thể loại ảnh trên Nekobot (hentai, hneko, pgif)
+ * @returns {Promise<string>} URL ảnh
+ */
+async function fetchNekobotImage(type) {
+  const url = `https://nekobot.xyz/api/image?type=${type}`;
+  logger.debug(`[AnimeImage] Gọi Nekobot API: ${url}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API Nekobot trả về HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.message) {
+      throw new Error('API Nekobot không trả về kết quả ảnh');
+    }
+
+    return data.message;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Lấy URL ảnh anime ngẫu nhiên từ nekos.best hoặc nekobot API.
+ *
+ * @param {string} category - Thể loại ảnh (ví dụ: 'waifu', 'xwaifu')
+ * @returns {Promise<string>} URL của ảnh
+ * @throws {Error} Khi API trả về lỗi
+ */
+async function fetchRandomImage(category) {
+  // Nếu là danh mục NSFW, gọi Nekobot API
+  if (NSFW_CATEGORIES[category]) {
+    return fetchNekobotImage(NSFW_CATEGORIES[category].nekobotType);
+  }
+
+  const bestCategory = mapCategoryToNekosBest(category);
+  const url = `${API_BASE}/${bestCategory}`;
+  logger.debug(`[AnimeImage] Gọi API: ${url}`);
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Discord-AI-Bot/1.0 (https://github.com/niyakipham/anime-bot)' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`API nekos.best trả về HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (!data.results || data.results.length === 0 || !data.results[0].url) {
+      throw new Error('API không trả về kết quả ảnh hợp lệ');
+    }
+
+    const imageUrl = data.results[0].url;
+    logger.debug(`[AnimeImage] Nhận ảnh: ${imageUrl.substring(0, 60)}...`);
+    return imageUrl;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ============================================================
+// HÀM XỬ LÝ TIN NHẮN
+// ============================================================
+
+/**
+ * Kiểm tra xem nội dung tin nhắn có khớp với từ khóa random ảnh không.
+ * Trả về category nếu khớp, null nếu không.
+ *
+ * @param {string} content - Nội dung tin nhắn (đã strip mention)
+ * @returns {string|null} Category API hoặc null
+ */
+function detectAnimeKeyword(content) {
+  if (!content) return null;
+
+  const normalized = content.toLowerCase().trim();
+
+  // Kiểm tra exact match trước
+  if (TRIGGER_KEYWORDS.has(normalized)) {
+    return TRIGGER_KEYWORDS.get(normalized);
+  }
+
+  // Kiểm tra keyword "anime" + category
+  // Ví dụ: "anime waifu", "anime neko"
+  const animeMatch = normalized.match(/^anime\s+(.+)$/);
+  if (animeMatch) {
+    const sub = animeMatch[1].trim();
+    if (TRIGGER_KEYWORDS.has(sub)) {
+      return TRIGGER_KEYWORDS.get(sub);
+    }
+    // Nếu sub trực tiếp là category hợp lệ
+    if (SFW_CATEGORIES[sub]) {
+      return sub;
+    }
+  }
+
+  // Kiểm tra "random" + keyword
+  // Ví dụ: "random waifu", "random neko"
+  const randomMatch = normalized.match(/^random\s+(.+)$/);
+  if (randomMatch) {
+    const sub = randomMatch[1].trim();
+    if (TRIGGER_KEYWORDS.has(sub)) {
+      return TRIGGER_KEYWORDS.get(sub);
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Xử lý và gửi ảnh anime random khi phát hiện từ khóa.
+ * Trả về true nếu đã xử lý (đã gửi ảnh), false nếu không phải từ khóa anime.
+ *
+ * @param {import('discord.js').Message} message - Tin nhắn Discord
+ * @param {string} content - Nội dung tin nhắn (đã strip mention)
+ * @returns {Promise<boolean>} true nếu đã gửi ảnh anime
+ */
+async function handleAnimeImage(message, content) {
+  const category = detectAnimeKeyword(content);
+  if (!category) return false;
+
+  const isNSFWCategory = !!NSFW_CATEGORIES[category];
+  const isNSFWChannel = message.channel.nsfw || !message.guild;
+
+  // Kiểm tra phân quyền kênh nếu yêu cầu NSFW
+  if (isNSFWCategory && !isNSFWChannel) {
+    await message.reply('❌ Cảnh báo: Lệnh này chứa nội dung nhạy cảm (NSFW) và chỉ có thể sử dụng trong kênh được gắn nhãn NSFW!');
+    return true;
+  }
+
+  try {
+    const imageUrl = await fetchRandomImage(category);
+    const catInfo = SFW_CATEGORIES[category] || NSFW_CATEGORIES[category] || { emoji: '🎴', label: category };
+    const randomColor = isNSFWCategory ? 0xFF0000 : EMBED_COLORS[Math.floor(Math.random() * EMBED_COLORS.length)];
+
+    const embed = new EmbedBuilder()
+      .setColor(randomColor)
+      .setTitle(`${catInfo.emoji} ${catInfo.label}`)
+      .setImage(imageUrl)
+      .setFooter({
+        text: `Yêu cầu bởi ${message.author.username} • ${isNSFWCategory ? 'nekobot.xyz' : 'nekos.best'}`,
+        iconURL: message.author.displayAvatarURL({ dynamic: true }),
+      })
+      .setTimestamp();
+
+    await message.reply({ embeds: [embed] });
+
+    logger.discord(
+      `${message.author.tag} yêu cầu ảnh anime: ${category} (${isNSFWCategory ? 'NSFW' : 'SFW'})`
+    );
+
+    return true;
+  } catch (error) {
+    logger.error(`[AnimeImage] Lỗi lấy ảnh ${category}: ${error.message}`);
+
+    await message.reply(`❌ Không thể lấy ảnh **${category}**. Thử lại sau nhé!`);
+    return true; // Vẫn trả true vì đã nhận diện là lệnh anime
+  }
+}
+
+/**
+ * Lấy danh sách tất cả categories có sẵn, format đẹp.
+ * @param {import('discord.js').TextChannel} [channel] - Kênh Discord để kiểm tra quyền NSFW
+ * @returns {string} Chuỗi danh sách categories
+ */
+function getCategoryList(channel = null) {
+  const sfwEntries = Object.entries(SFW_CATEGORIES);
+  let list = '**Ảnh SFW:**\n' + sfwEntries
+    .map(([key, info]) => `${info.emoji} \`${key}\``)
+    .join('  ');
+
+  const isNSFW = channel ? (channel.nsfw || !channel.guild) : false;
+  if (isNSFW) {
+    const nsfwEntries = Object.entries(NSFW_CATEGORIES);
+    list += '\n\n**Ảnh NSFW (18+):**\n' + nsfwEntries
+      .map(([key, info]) => `${info.emoji} \`${key}\``)
+      .join('  ');
+  }
+  return list;
+}
+
+// ============================================================
+// XUẤT MODULE
+// ============================================================
+
+module.exports = {
+  fetchRandomImage,
+  detectAnimeKeyword,
+  handleAnimeImage,
+  getCategoryList,
+  SFW_CATEGORIES,
+  NSFW_CATEGORIES,
+  TRIGGER_KEYWORDS,
+};
