@@ -14,8 +14,17 @@
 - 💬 **Lịch sử hội thoại** — Nhớ ngữ cảnh cuộc trò chuyện theo từng kênh
 - 📊 **Trạng thái động** — Trạng thái hoạt động (Custom Status) của bot hiển thị tên model, số token đã dùng / dung lượng context window của kênh hoạt động gần nhất, và số credit OpenRouter còn lại theo thời gian thực
 - 🛠️ **Function Calling** — AI tự động sử dụng công cụ khi cần (tìm kiếm, tính toán, xem giờ)
-- 💬 **Tương tác hoàn toàn tự nhiên** — Trò chuyện trực tiếp bằng cách tag bot `@hehe`, trả lời tin nhắn (reply) của bot hoặc nhắn tin riêng (DM) mà không cần dùng slash command hay tiền tố phức tạp
+- 💬 **Tương tác hoàn toàn tự nhiên** — Trò chuyện trực tiếp bằng cách tag bot `@hehe` hoặc trả lời tin nhắn (reply) của bot mà không cần dùng slash command hay tiền tố phức tạp
 - 🔄 **Đổi model linh hoạt** — Chuyển đổi model AI bất kỳ trên OpenRouter
+
+---
+
+## 🔗 Link thêm Bot (Invite Links)
+
+Bạn có thể thêm bot vào máy chủ hoặc cài đặt trực tiếp vào tài khoản cá nhân của bạn để trò chuyện mọi lúc mọi nơi:
+
+* **Thêm vào Máy chủ (Guild Install):** [Link Guild Install](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=0&scope=bot)
+* **Cài đặt cá nhân (User Install):** [Link User Install](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=1&scope=bot)
 
 ---
 
@@ -93,11 +102,11 @@ npm run dev
 
 ## 📝 Cách tương tác và Danh sách lệnh
 
-Bot hỗ trợ song song hai cách tương tác: qua **Tương tác trực tiếp bằng tin nhắn** (tag bot `@hehe`, nhắn prefix `!ai`, hoặc nhắn trực tiếp trong DM) hoặc **Slash Commands (/)**.
+Bot hỗ trợ **Tương tác trực tiếp bằng tin nhắn** bằng cách tag bot `@hehe` hoặc trả lời tin nhắn (reply) của bot trong các kênh chat (lưu ý: bot không nhận tin nhắn riêng DMs).
 
-### 💬 Tương tác bằng tin nhắn chat (Khuyên dùng)
+### 💬 Tương tác bằng tin nhắn chat
 
-Bạn chỉ cần nhắn tin (tag bot `@hehe` hoặc gõ prefix `!ai` hoặc nhắn tin trong DM) kèm nội dung mong muốn, bot sẽ tự động nhận diện ý định của bạn:
+Bạn chỉ cần nhắn tin (tag bot `@hehe` hoặc reply vào tin nhắn của bot) kèm nội dung mong muốn, bot sẽ tự động nhận diện ý định của bạn:
 
 | Yêu cầu của bạn | Ví dụ tin nhắn | Hành động của Bot |
 |-----------------|-------|-------------------|

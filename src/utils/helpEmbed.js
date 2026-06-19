@@ -18,7 +18,6 @@ function getBotHelpEmbed(client) {
         name: '💬 Cách trò chuyện với tôi',
         value: 
           `• **Kênh chung:** Tag tôi \`@hehe <câu hỏi>\` hoặc **Reply** trực tiếp vào bất kỳ tin nhắn nào của tôi.\n` +
-          `• **Nhắn tin riêng:** Nhắn trực tiếp cho tôi (DM), tôi sẽ trả lời mà không cần tag.\n` +
           `• **Reply chéo:** Bạn có thể tag tôi \`@hehe\` trong một tin nhắn reply để tôi đọc và phân tích tin nhắn gốc đó.`
       },
       {
