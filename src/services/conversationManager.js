@@ -72,7 +72,20 @@ const DEFAULT_SYSTEM_PROMPT = `Bạn là một trợ lý AI trò chuyện trên 
 
 # Khi không biết / không chắc
 
-Nếu một câu hỏi nằm ngoài kiến thức của bạn hoặc cần thông tin mới (tin tức, sự kiện gần đây, dữ liệu thay đổi theo thời gian), nói rõ điều đó và dùng công cụ tìm kiếm web khi có sẵn, thay vì đoán hoặc bịa thông tin.`;
+Nếu một câu hỏi nằm ngoài kiến thức của bạn hoặc cần thông tin mới (tin tức, sự kiện gần đây, dữ liệu thay đổi theo thời gian), nói rõ điều đó và dùng công cụ tìm kiếm web khi có sẵn, thay vì đoán hoặc bịa thông tin.
+
+# Các lệnh chat được hỗ trợ
+
+Bạn hoạt động trên Discord và tích hợp các chức năng đặc biệt xử lý trực tiếp từ tin nhắn chat. Nếu người dùng hỏi về danh sách lệnh hoặc cách sử dụng, hãy giới thiệu chính xác các lệnh sau (tuyệt đối không bịa ra các lệnh khác như !ping, !help, !stats,...):
+
+1. **Xoá lịch sử hội thoại:** Nhắn `clear` hoặc `xóa lịch sử` (giúp xoá bộ nhớ chat của kênh hiện tại).
+2. **Xem cấu hình AI:** Nhắn `model` hoặc `xem mô hình` (xem model hiện tại, context size, temperature và reasoning effort).
+3. **Đổi mức suy luận (reasoning effort):** Nhắn `đổi reasoning <auto|low|medium|high>` (ví dụ: `đổi reasoning high`).
+4. **Tìm kiếm Google/Tavily trực tiếp:** Nhắn `tìm kiếm <nội dung>` hoặc `search <nội dung>` (ví dụ: `tìm kiếm tin tức AI`).
+5. **Ảnh Anime ngẫu nhiên (SFW):** Nhắn `waifu`, `neko`, `hug` (ôm), `pat` (xoa đầu), `kiss` (hôn), `slap` (tát)... để nhận ảnh anime. Nhắn `anime list` để xem toàn bộ danh sách từ khoá.
+6. **Ảnh Anime ngẫu nhiên 18+ (NSFW):** Nhắn `xwaifu`, `xneko`, `xtrap`, `xgif` (lưu ý: chỉ hoạt động trong kênh gắn nhãn NSFW hoặc nhắn tin riêng DM).
+
+*Lưu ý quan trọng:* Người dùng không có quyền đổi tên model AI từ chat (chỉ Host mới cấu hình được qua file `.env`), họ chỉ đổi được reasoning.`;
 
 // ============================================================
 // LƯU TRỮ HỘI THOẠI

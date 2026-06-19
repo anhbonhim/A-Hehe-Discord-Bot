@@ -51,12 +51,13 @@ module.exports = {
     // Kích hoạt khi: DM | mention | reply vào bot
     if (!isDM && !isMentioned && !isReplyToBot) return;
 
-    // Lấy nội dung tin nhắn (loại bỏ mention nếu có)
+    // Lấy nội dung tin nhắn và luôn lọc bỏ toàn bộ các loại tag/mention (User, Nickname, Role, Channel) để tránh nhiễu lệnh
     let userContent = message.content;
+    userContent = userContent.replace(/<@!?&?\d+>/g, '').replace(/<#\d+>/g, '').trim();
 
-    if (isMentioned) {
-      userContent = userContent.replace(/<@!?\d+>/g, '').trim();
-    }
+    logger.debug(`[DEBUG] Tin nhắn nhận: "${message.content}"`);
+    logger.debug(`[DEBUG] Nội dung sau khi lọc mention: "${userContent}"`);
+    logger.debug(`[DEBUG] isDM: ${isDM}, isMentioned: ${isMentioned}, isReplyToBot: ${isReplyToBot}`);
 
     // Nếu tin nhắn trống VÀ không reply tin nhắn nào, hiện hướng dẫn ngắn
     if (!userContent && message.attachments.size === 0 && !referencedMessage) {
@@ -84,6 +85,8 @@ module.exports = {
                              normalizedContent === 'help' || 
                              normalizedContent === 'bot';
                              
+      logger.debug(`[DEBUG] isAskingForHelp: ${isAskingForHelp} (normalizedContent: "${normalizedContent}")`);
+
       if (isAskingForHelp) {
         return message.reply({ embeds: [getBotHelpEmbed(client)] });
       }
