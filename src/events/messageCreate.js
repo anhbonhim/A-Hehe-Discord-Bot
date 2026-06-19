@@ -30,8 +30,8 @@ module.exports = {
     // Bỏ qua tin nhắn từ bot
     if (message.author.bot) return;
 
-    // Bỏ qua tin nhắn riêng (DM)
-    if (!message.guild) return;
+    // Kiểm tra tin nhắn riêng (DM)
+    const isDM = !message.guild;
 
     // Kiểm tra mention
     const isMentioned = message.mentions.has(client.user.id);
@@ -39,7 +39,7 @@ module.exports = {
     // Kiểm tra reply và tin nhắn gốc
     let isReplyToBot = false;
     let referencedMessage = null;
-    if (message.reference) {
+    if (message.reference && !isDM) {
       try {
         referencedMessage = await message.channel.messages.fetch(message.reference.messageId);
         isReplyToBot = referencedMessage?.author?.id === client.user.id;
@@ -48,8 +48,8 @@ module.exports = {
       }
     }
 
-    // Kích hoạt khi: mention hoặc reply vào bot
-    if (!isMentioned && !isReplyToBot) return;
+    // Kích hoạt khi: DM | mention | reply vào bot
+    if (!isDM && !isMentioned && !isReplyToBot) return;
 
     // Lấy nội dung tin nhắn (loại bỏ mention nếu có)
     let userContent = message.content;
@@ -60,8 +60,10 @@ module.exports = {
 
     // Nếu tin nhắn trống VÀ không reply tin nhắn nào, hiện hướng dẫn ngắn
     if (!userContent && message.attachments.size === 0 && !referencedMessage) {
-      const helpDescription = `Tag tôi kèm câu hỏi, hoặc reply vào tin nhắn của tôi.` +
-                              `\nGửi ảnh hoặc file kèm câu hỏi cũng được.`;
+      const helpDescription = isDM
+        ? `Nhắn gì cũng được, tôi sẽ trả lời. Gửi ảnh hoặc file kèm câu hỏi cũng được.`
+        : `Tag tôi kèm câu hỏi, reply vào tin nhắn của tôi, hoặc nhắn riêng (DM).` +
+          `\nGửi ảnh hoặc file kèm câu hỏi cũng được.`;
 
       return message.reply(helpDescription);
     }
@@ -570,7 +572,7 @@ module.exports = {
         logger.debug(`Lỗi cập nhật status bot: ${err.message}`);
       }
 
-      const channelLabel = `#${message.channel.name}`;
+      const channelLabel = isDM ? 'DM' : `#${message.channel.name}`;
       logger.discord(
         `${message.author.tag} tại ${channelLabel}: "${userContent.substring(0, 80)}${userContent.length > 80 ? '...' : ''}"`
       );
