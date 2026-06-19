@@ -40,12 +40,13 @@ function getBotHelpEmbed(client) {
         value: `• Gõ \`anime list\` hoặc tag tôi kèm các từ khóa như: \`waifu\`, \`neko\`, \`hug\` (ôm), \`pat\` (xoa đầu), \`kiss\` (hôn), \`slap\` (tát)... để nhận ảnh Anime ngẫu nhiên.`
       },
       {
-        name: '⚡ Lệnh Slash Commands',
+        name: '⚡ Lệnh Chat trực tiếp (Không cần slash /)',
         value: 
-          `• \`/ask prompt:<câu hỏi>\` — Hỏi AI nhanh.\n` +
-          `• \`/search query:<từ khóa>\` — Tìm kiếm web.\n` +
-          `• \`/model name:<tên>\` — Đổi model AI.\n` +
-          `• \`/clear\` — Xóa lịch sử trò chuyện của kênh.`
+          `• \`clear\` hoặc \`xóa lịch sử\` — Xóa lịch sử trò chuyện của kênh.\n` +
+          `• \`model\` hoặc \`xem mô hình\` — Xem thông số model AI đang chạy.\n` +
+          `• \`đổi model <tên>\` — Chuyển đổi model chính trên OpenRouter.\n` +
+          `• \`đổi reasoning <auto|low|medium|high>\` — Thay đổi mức độ suy luận.\n` +
+          `• \`tìm kiếm <nội dung>\` — Tra cứu Google/Tavily trực tiếp.`
       }
     )
     .setFooter({ text: 'Chúc bạn có một trải nghiệm thú vị!' })

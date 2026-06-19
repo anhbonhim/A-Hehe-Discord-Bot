@@ -11,8 +11,6 @@ const config = {
   // Cấu hình Discord
   discord: {
     token: process.env.DISCORD_TOKEN,
-    clientId: process.env.CLIENT_ID,
-    prefix: process.env.BOT_PREFIX || '!ai',
   },
 
   // Cấu hình AI model
