@@ -5,9 +5,6 @@
 const { EmbedBuilder } = require('discord.js');
 const logger = require('../utils/logger');
 const { searchAnimeImages } = require('./webSearch');
-const imageCache = require('./imageCache');
-const imageHistory = require('./imageHistory');
-const { verifyImageContent } = require('./imageVerification');
 
 // ============================================================
 // CẤU HÌNH
@@ -21,49 +18,73 @@ const API_BASE = 'https://nekos.best/api/v2';
  * Chia thành 2 nhóm: ảnh nhân vật và ảnh hành động (reaction).
  */
 const SFW_CATEGORIES = {
-  // Ảnh nhân vật
-  waifu: { emoji: '💖', label: 'Waifu' },
-  neko: { emoji: '🐱', label: 'Neko' },
-  shinobu: { emoji: '🦋', label: 'Shinobu' },
-  megumin: { emoji: '💥', label: 'Megumin' },
+  // nekos.best:
+  waifu: { emoji: '💖', label: 'Waifu', source: 'nekos.best' },
+  neko: { emoji: '🐱', label: 'Neko', source: 'nekos.best' },
+  shinobu: { emoji: '🦋', label: 'Shinobu', source: 'nekos.best' },
+  megumin: { emoji: '💥', label: 'Megumin', source: 'nekos.best' },
+  bully: { emoji: '😈', label: 'Bully', source: 'nekos.best' },
+  cuddle: { emoji: '🤗', label: 'Cuddle', source: 'nekos.best' },
+  cry: { emoji: '😢', label: 'Cry', source: 'nekos.best' },
+  hug: { emoji: '🫂', label: 'Hug', source: 'nekos.best' },
+  awoo: { emoji: '🐺', label: 'Awoo', source: 'nekos.best' },
+  kiss: { emoji: '😘', label: 'Kiss', source: 'nekos.best' },
+  lick: { emoji: '👅', label: 'Lick', source: 'nekos.best' },
+  pat: { emoji: '🤚', label: 'Pat', source: 'nekos.best' },
+  smug: { emoji: '😏', label: 'Smug', source: 'nekos.best' },
+  bonk: { emoji: '🔨', label: 'Bonk', source: 'nekos.best' },
+  yeet: { emoji: '🏋️', label: 'Yeet', source: 'nekos.best' },
+  blush: { emoji: '😊', label: 'Blush', source: 'nekos.best' },
+  smile: { emoji: '😄', label: 'Smile', source: 'nekos.best' },
+  wave: { emoji: '👋', label: 'Wave', source: 'nekos.best' },
+  highfive: { emoji: '🙌', label: 'High Five', source: 'nekos.best' },
+  handhold: { emoji: '🤝', label: 'Handhold', source: 'nekos.best' },
+  nom: { emoji: '😋', label: 'Nom', source: 'nekos.best' },
+  bite: { emoji: '🦷', label: 'Bite', source: 'nekos.best' },
+  glomp: { emoji: '🤸', label: 'Glomp', source: 'nekos.best' },
+  slap: { emoji: '👋', label: 'Slap', source: 'nekos.best' },
+  happy: { emoji: '😃', label: 'Happy', source: 'nekos.best' },
+  wink: { emoji: '😉', label: 'Wink', source: 'nekos.best' },
+  poke: { emoji: '👉', label: 'Poke', source: 'nekos.best' },
+  dance: { emoji: '💃', label: 'Dance', source: 'nekos.best' },
+  cringe: { emoji: '😬', label: 'Cringe', source: 'nekos.best' },
+  kick: { emoji: '🦶', label: 'Kick', source: 'nekos.best' },
 
-  // Ảnh hành động / reaction
-  bully: { emoji: '😈', label: 'Bully' },
-  cuddle: { emoji: '🤗', label: 'Cuddle' },
-  cry: { emoji: '😢', label: 'Cry' },
-  hug: { emoji: '🫂', label: 'Hug' },
-  awoo: { emoji: '🐺', label: 'Awoo' },
-  kiss: { emoji: '😘', label: 'Kiss' },
-  lick: { emoji: '👅', label: 'Lick' },
-  pat: { emoji: '🤚', label: 'Pat' },
-  smug: { emoji: '😏', label: 'Smug' },
-  bonk: { emoji: '🔨', label: 'Bonk' },
-  yeet: { emoji: '🏋️', label: 'Yeet' },
-  blush: { emoji: '😊', label: 'Blush' },
-  smile: { emoji: '😄', label: 'Smile' },
-  wave: { emoji: '👋', label: 'Wave' },
-  highfive: { emoji: '🙌', label: 'High Five' },
-  handhold: { emoji: '🤝', label: 'Handhold' },
-  nom: { emoji: '😋', label: 'Nom' },
-  bite: { emoji: '🦷', label: 'Bite' },
-  glomp: { emoji: '🤸', label: 'Glomp' },
-  slap: { emoji: '👋', label: 'Slap' },
-  happy: { emoji: '😃', label: 'Happy' },
-  wink: { emoji: '😉', label: 'Wink' },
-  poke: { emoji: '👉', label: 'Poke' },
-  dance: { emoji: '💃', label: 'Dance' },
-  cringe: { emoji: '😬', label: 'Cringe' },
-  kick: { emoji: '🦶', label: 'Kick' },
+  // Nekobot SFW:
+  kanna: { emoji: '🐉', label: 'Kanna', source: 'nekobot' },
+  holo: { emoji: '🦊', label: 'Holo', source: 'nekobot' },
+  kemonomimi: { emoji: '🐾', label: 'Kemonomimi', source: 'nekobot' },
+  food: { emoji: '🍳', label: 'Food', source: 'nekobot' },
+  coffee: { emoji: '☕', label: 'Coffee', source: 'nekobot' },
 };
 
-/**
- * Danh sách các thể loại NSFW được hỗ trợ (qua Nekobot API)
- */
 const NSFW_CATEGORIES = {
+  // Lệnh cũ/Alias:
   xwaifu: { emoji: '🔞', label: 'NSFW Waifu', nekobotType: 'hentai' },
   xneko: { emoji: '🔞', label: 'NSFW Neko', nekobotType: 'hneko' },
   xtrap: { emoji: '🔞', label: 'NSFW Trap', nekobotType: 'hentai' },
   xgif: { emoji: '🔞', label: 'NSFW GIF', nekobotType: 'pgif' },
+
+  // Danh mục Nekobot gốc:
+  hentai: { emoji: '🔞', label: 'Hentai', nekobotType: 'hentai' },
+  hneko: { emoji: '🔞', label: 'NSFW Neko', nekobotType: 'hneko' },
+  hkitsune: { emoji: '🔞', label: 'NSFW Kitsune', nekobotType: 'hkitsune' },
+  pgif: { emoji: '🔞', label: 'NSFW GIF', nekobotType: 'pgif' },
+  '4k': { emoji: '🖼️', label: '4K Image', nekobotType: '4k' },
+  ass: { emoji: '🍑', label: 'Ass', nekobotType: 'ass' },
+  hass: { emoji: '🍑', label: 'Hentai Ass', nekobotType: 'hass' },
+  pussy: { emoji: '🔞', label: 'Pussy', nekobotType: 'pussy' },
+  boobs: { emoji: '🍒', label: 'Boobs', nekobotType: 'boobs' },
+  hboobs: { emoji: '🍒', label: 'Hentai Boobs', nekobotType: 'hboobs' },
+  thigh: { emoji: '🍗', label: 'Thighs', nekobotType: 'thigh' },
+  hthigh: { emoji: '🍗', label: 'Hentai Thighs', nekobotType: 'hthigh' },
+  paizuri: { emoji: '🔞', label: 'Paizuri', nekobotType: 'paizuri' },
+  tentacle: { emoji: '👾', label: 'Tentacle', nekobotType: 'tentacle' },
+  anal: { emoji: '🔞', label: 'Anal', nekobotType: 'anal' },
+  hanal: { emoji: '🔞', label: 'Hentai Anal', nekobotType: 'hanal' },
+  gonewild: { emoji: '🔞', label: 'Gone Wild', nekobotType: 'gonewild' },
+  hmidriff: { emoji: '👙', label: 'Hentai Midriff', nekobotType: 'hmidriff' },
+  yaoi: { emoji: '👬', label: 'Yaoi', nekobotType: 'yaoi' },
 };
 
 /**
@@ -209,6 +230,11 @@ async function fetchRandomImage(category) {
   // Nếu là danh mục NSFW, gọi Nekobot API
   if (NSFW_CATEGORIES[category]) {
     return fetchNekobotImage(NSFW_CATEGORIES[category].nekobotType);
+  }
+
+  // Nếu là danh mục SFW của Nekobot (kanna, holo, kemonomimi, food, coffee)
+  if (SFW_CATEGORIES[category] && SFW_CATEGORIES[category].source === 'nekobot') {
+    return fetchNekobotImage(category);
   }
 
   const bestCategory = mapCategoryToNekosBest(category);
@@ -401,92 +427,29 @@ async function sendAnimeImage(message, category, isNSFW = false) {
       imageUrl = await fetchRandomImage(category);
       sourceText = isStaticNSFW ? 'nekobot.xyz' : 'nekos.best';
     } else {
-      // 2. LUỒNG DANH MỤC ĐỘNG (Cache -> Web Search -> History -> Random)
+      // 2. LUỒNG DANH MỤC ĐỘNG (Web Search Fallback không dùng Vision)
       sourceText = 'Web Search';
       
-      // Kiểm tra Cache
-      const cached = imageCache.getCache(category);
-      let validImages = [];
-      
-      if (cached) {
-        validImages = cached.images;
-        // Soft refresh
-        if (cached.needsRefresh) {
-          searchAnimeImages(category, effectiveIsNSFW).then(newImages => {
-            if (newImages.length > 0) imageCache.setCache(category, newImages);
-          }).catch(err => logger.error(`Lỗi background refresh cho ${category}: ${err.message}`));
-        }
-      } else {
-        // Query mới nếu chưa có Cache
-        await message.channel.sendTyping();
-        validImages = await searchAnimeImages(category, effectiveIsNSFW);
-        if (validImages.length > 0) {
-          imageCache.setCache(category, validImages);
+      // Chặn tìm kiếm NSFW trên kênh SFW (Guard ở code level)
+      if (!isNSFWChannel) {
+        const nsfwKeywords = ['hentai', 'nude', 'sex', 'boobs', 'ass', 'pussy', 'thigh', '18+', 'r18', 'ecchi', 'ahegao', 'midriff', 'panties', 'underwear', 'naked'];
+        const lowerCategory = category.toLowerCase();
+        if (nsfwKeywords.some(kw => lowerCategory.includes(kw))) {
+          await message.reply('❌ Lỗi: Không thể tìm kiếm nội dung nhạy cảm trên kênh thường (SFW)!');
+          return true;
         }
       }
+      
+      await message.channel.sendTyping();
+      const validImages = await searchAnimeImages(category, isNSFWChannel);
       
       if (validImages.length === 0) {
         await message.reply(`❌ Xin lỗi, tôi không tìm thấy ảnh nào hợp lệ cho "**${category}**". Bạn thử từ khóa khác nhé!`);
         return true;
       }
       
-      // Lọc qua History (Chống lặp)
-      // Tỷ lệ lặp tự nhiên: 1/25 bỏ qua history filter
-      const shouldBypassHistory = Math.random() < (1 / 25);
-      let candidateImages = [...validImages];
-      
-      if (!shouldBypassHistory) {
-        candidateImages = validImages.filter(url => !imageHistory.isRecent(category, url));
-        // Nếu tất cả ảnh đều đã nằm trong lịch sử, đành lấy lại toàn bộ danh sách để tránh lỗi
-        if (candidateImages.length === 0) {
-          candidateImages = [...validImages];
-        }
-      }
-      
-      let verifiedUrl = null;
-      let lastCheckedUrl = null;
-      let attempts = 0;
-      const maxAttempts = 3;
-      
-      while (candidateImages.length > 0 && attempts < maxAttempts) {
-        attempts++;
-        const randomIndex = Math.floor(Math.random() * candidateImages.length);
-        const selectedUrl = candidateImages[randomIndex];
-        lastCheckedUrl = selectedUrl;
-        
-        // Loại bỏ khỏi candidate để không chọn lại trong vòng lặp này
-        candidateImages.splice(randomIndex, 1);
-        
-        // Thực hiện kiểm chứng AI Vision
-        const isValid = await verifyImageContent(selectedUrl, category);
-        if (isValid) {
-          verifiedUrl = selectedUrl;
-          break;
-        } else {
-          logger.warn(`[AnimeImage] Vision check FAILED for: ${selectedUrl}. Removing from cache.`);
-          // Xóa ảnh sai khỏi danh sách cache chung (validImages)
-          const indexInValid = validImages.indexOf(selectedUrl);
-          if (indexInValid !== -1) {
-            validImages.splice(indexInValid, 1);
-            if (validImages.length > 0) {
-              imageCache.setCache(category, validImages);
-            } else {
-              imageCache.clearCache(category);
-            }
-          }
-        }
-      }
-      
-      // Nếu không tìm được ảnh nào vượt qua kiểm chứng, không dùng ảnh sai (lastCheckedUrl) làm fallback
-      imageUrl = verifiedUrl;
-      
-      if (!imageUrl) {
-        await message.reply(`❌ Xin lỗi, tôi không tìm thấy ảnh nào đúng nội dung "**${category}**" sau khi kiểm chứng bằng AI. Bạn thử từ khóa khác nhé!`);
-        return true;
-      }
-      
-      // Thêm ảnh vừa gửi vào History
-      imageHistory.addHistory(category, imageUrl);
+      // Chọn ngẫu nhiên 1 ảnh trực tiếp (không kiểm chứng bằng AI Vision)
+      imageUrl = validImages[Math.floor(Math.random() * validImages.length)];
     }
 
     const catInfo = SFW_CATEGORIES[category] || NSFW_CATEGORIES[category] || { emoji: '🔍', label: category.charAt(0).toUpperCase() + category.slice(1) };

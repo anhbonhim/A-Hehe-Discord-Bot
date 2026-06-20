@@ -76,7 +76,8 @@ module.exports = {
       // STAGE 1: ROUTER MODEL (XỬ LÝ LỆNH HỆ THỐNG)
       // ==========================================
       const { getRouterToolDefinitions } = require('../services/toolManager');
-      const { systemPrompt: routerSystemPrompt, tools: routerToolsList } = getRouterToolDefinitions();
+      const isNSFWChannel = message.channel.nsfw || !message.guild;
+      const { systemPrompt: routerSystemPrompt, tools: routerToolsList } = getRouterToolDefinitions(isNSFWChannel);
       
       try {
         const routerMessages = [

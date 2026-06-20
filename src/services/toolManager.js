@@ -4,7 +4,17 @@
 const { search, formatSearchResults } = require('./webSearch');
 const logger = require('../utils/logger');
 
-const ROUTER_SYSTEM_PROMPT = `Bạn là bộ phân loại ý định (intent classifier) cực nhanh cho một Discord bot tiếng Việt. Nhiệm vụ DUY NHẤT: xác định tin nhắn có phải LỆNH HỆ THỐNG rõ ràng không, nếu có thì gọi đúng tool.
+/**
+ * Sinh prompt hệ thống cho AI Router dựa trên loại kênh
+ * @param {boolean} isNSFWChannel 
+ * @returns {string} Prompt hệ thống
+ */
+function getRouterSystemPrompt(isNSFWChannel) {
+  const channelContext = isNSFWChannel 
+    ? `KÊNH HIỆN TẠI: NSFW (Mười tám cộng - 18+). Bạn ĐƯỢC PHÉP nhận dạng và phân loại các yêu cầu ảnh người lớn/nhạy cảm (hentai, ecchi, boobs, ass, thigh, pgif, tentacle...) và thiết lập isNSFW = true.`
+    : `KÊNH HIỆN TẠI: SFW (An toàn cho công việc). Bạn TUYỆT ĐỐI KHÔNG ĐƯỢC PHÉP nhận dạng/phân loại hoặc thiết lập isNSFW = true đối với các yêu cầu nhạy cảm/18+ (hentai, nude, sex, boobs, ass...). Nếu người dùng yêu cầu nội dung nhạy cảm, bạn hãy từ chối bằng cách KHÔNG gọi bất kỳ tool nào (trả về text thường để Stage 2 từ chối).`;
+
+  return `Bạn là bộ phân loại ý định (intent classifier) cực nhanh cho một Discord bot tiếng Việt. Nhiệm vụ DUY NHẤT: xác định tin nhắn có phải LỆNH HỆ THỐNG rõ ràng không, nếu có thì gọi đúng tool.
 
 QUY TẮC QUAN TRỌNG NHẤT:
 - Chỉ gọi tool khi người dùng đang RA LỆNH cho bot làm gì đó NGAY BÂY GIỜ.
@@ -12,60 +22,73 @@ QUY TẮC QUAN TRỌNG NHẤT:
 - Nếu độ chắc chắn dưới 80%, KHÔNG gọi tool nào — để hệ thống fallback xử lý.
 - Chính tả sai, viết tắt, ngụ ý gián tiếp NHƯNG rõ ràng đang yêu cầu bot thì vẫn phải nhận diện đúng.
 
+${channelContext}
+
 DANH SÁCH TOOL:
 1. cmd_clear_history — xoá lịch sử trò chuyện kênh hiện tại
 2. cmd_model_info — xem thông tin model AI đang chạy
 3. cmd_change_reasoning — đổi mức suy luận (auto/low/medium/high)
 4. cmd_bot_help — xem tài liệu hướng dẫn sử dụng bot, các tính năng và danh sách lệnh
-5. cmd_anime_image — hiển thị ảnh/gif anime ngẫu nhiên hoặc theo một từ khóa bất kỳ (waifu, ôm, luffy, rem, maid, fox girl, sleeping anime girl, ahegao, ...).
-  - Chú ý: Trích xuất từ khóa anime gần nhất với yêu cầu người dùng, không tự mở rộng ý nghĩa, không thêm mô tả mới, không dịch từ khóa. Giữ nguyên từ khóa người dùng cung cấp nếu có thể.
-  - AI phải tự quyết định xem từ khóa có chứa nội dung nhạy cảm/NSFW không (ví dụ: hentai, ecchi, ahegao, succubus, r18...) để set cờ \`isNSFW=true\`.
+5. cmd_anime_image — hiển thị ảnh/gif anime ngẫu nhiên hoặc theo một từ khóa do người dùng yêu cầu.
+   - Thể loại có sẵn (SFW): waifu, neko, shinobu, megumin, kanna, holo, kemonomimi, food, coffee, hug, kiss, pat, cuddle, slap, wave, dance, wink, smile...
+   - Thể loại có sẵn (NSFW - CHỈ ĐƯỢC DÙNG KHI KÊNH LÀ NSFW): hentai, hneko, hkitsune, pgif, 4k, ass, hass, boobs, hboobs, thigh, hthigh, paizuri, tentacle, anal, hanal, gonewild, hmidriff, yaoi...
+   - Quy tắc Semantic Mapping (Ánh xạ từ đồng nghĩa):
+     * fox girl / cáo con -> kemonomimi (hoặc hkitsune nếu NSFW)
+     * wolf girl -> kemonomimi
+     * cat girl -> neko (hoặc hneko nếu NSFW)
+     * ảnh đùi -> thigh (hoặc hthigh nếu NSFW)
+     * ảnh ngực / vú / tits -> boobs (hoặc hboobs nếu NSFW)
+     * ảnh mông -> ass (hoặc hass nếu NSFW)
+     * ảnh hôn -> kiss
+     * ảnh ôm -> hug hoặc cuddle
+     * tát -> slap
+     * xoa đầu -> pat
+     * nhảy múa -> dance
+     * nháy mắt -> wink
+     * cười -> smile
+   - Nếu từ khóa người dùng yêu cầu là một nhân vật/chủ đề cụ thể không nằm trong các danh mục trên (ví dụ: luffy, zoro, rem, mikasa, goku, naruto...), hãy truyền chính xác từ khóa đó vào tham số category (ví dụ: category="luffy", isNSFW=false) để hệ thống chạy Web Search fallback.
+   - Chú ý: Trích xuất từ khóa anime gần nhất với yêu cầu người dùng, không tự mở rộng ý nghĩa, không thêm mô tả mới, không dịch từ khóa.
 
 VÍ DỤ ĐÚNG (PHẢI gọi tool):
 - "xoá lịch sử đi" → cmd_clear_history
 - "xoá giùm tui lịch sử hôm nay nha bot" → cmd_clear_history
 - "clr hist" → cmd_clear_history
-- "quên hết đi bot ơi" → cmd_clear_history
 - "mày đang chạy model gì vậy" → cmd_model_info
-- "xem mô hình" → cmd_model_info
 - "đổi reasoning lên cao đi" → cmd_change_reasoning(level=high)
-- "để chế độ suy nghĩ thấp thôi" → cmd_change_reasoning(level=low)
-- "hướng dẫn sử dụng" → cmd_bot_help
-- "bot này dùng thế nào" → cmd_bot_help
 - "help" → cmd_bot_help
-- "các lệnh của bot" → cmd_bot_help
-- "cứu tôi" → cmd_bot_help
 - "gửi ảnh waifu đi" → cmd_anime_image(category="waifu", isNSFW=false)
 - "danh sách anime" → cmd_anime_image(category="list", isNSFW=false)
 - "gửi ảnh luffy" → cmd_anime_image(category="luffy", isNSFW=false)
 - "ảnh rem" → cmd_anime_image(category="rem", isNSFW=false)
-- "gửi ảnh fox girl" → cmd_anime_image(category="fox girl", isNSFW=false)
-- "ảnh hentai rem" → cmd_anime_image(category="hentai rem", isNSFW=true)
-- "succubus" → cmd_anime_image(category="succubus", isNSFW=true)
+- "cáo con" → cmd_anime_image(category="kemonomimi", isNSFW=false)
+- "ảnh ôm nhau" → cmd_anime_image(category="hug", isNSFW=false)
+${isNSFWChannel ? `- "ảnh đùi" → cmd_anime_image(category="hthigh", isNSFW=true)
+- "ảnh ngực to" → cmd_anime_image(category="hboobs", isNSFW=true)
+- "ảnh mông" → cmd_anime_image(category="hass", isNSFW=true)
+- "hentai rem" → cmd_anime_image(category="hentai", isNSFW=true)
 - "xwaifu" → cmd_anime_image(category="xwaifu", isNSFW=true)
 - "xneko" → cmd_anime_image(category="xneko", isNSFW=true)
-- "xgif" → cmd_anime_image(category="xgif", isNSFW=true)
+- "xgif" → cmd_anime_image(category="xgif", isNSFW=true)` : ''}
 
 VÍ DỤ SAI (KHÔNG gọi tool nào):
 - "tôi mới xoá lịch sử chat với con gà" → câu kể chuyện về người/vật khác, không phải lệnh
-- "lịch sử chat của tao toàn tin nhắn vô bổ" → đang than phiền, không ra lệnh
-- "hôm qua tao đổi reasoning xong bị lỗi" → kể chuyện quá khứ
-- "model gì mà ngu vậy" → đang chê, không hỏi thông tin
-- "xoá giùm tao cái tin nhắn kia đi" → xoá 1 tin nhắn cụ thể, không phải xoá lịch sử
-- "tôi đâu có hỏi help đâu" → câu kể chuyện/đính chính, không yêu cầu xem hướng dẫn sử dụng
-- "bảo tôi cần trợ giúp không" → câu hỏi vẩn vơ, không yêu cầu xem hướng dẫn
 - "tao ghét xem anime" → đang bày tỏ quan điểm, không yêu cầu ảnh anime
 - "lắm tay" → từ gõ sai/vô nghĩa, không chắc chắn ý định nên không gọi tool
+${!isNSFWChannel ? `- "gửi ảnh sex" → Yêu cầu nhạy cảm trên kênh SFW, KHÔNG gọi tool.
+- "hentai" → Yêu cầu nhạy cảm trên kênh SFW, KHÔNG gọi tool.
+- "nude rem" → Yêu cầu nhạy cảm trên kênh SFW, KHÔNG gọi tool.` : ''}
 
-Nếu không khớp rõ ràng với case nào ở trên, KHÔNG gọi tool nào cả.`;
+Nếu không khớp rõ ràng với case nào ở trên hoặc vi phạm quy tắc kênh an toàn, KHÔNG gọi tool nào cả.`;
+}
 
 /**
  * Lấy định nghĩa tool và system prompt cho model Router (Stage 1)
+ * @param {boolean} [isNSFWChannel=false] - Loại kênh hiện tại
  * @returns {Object} { systemPrompt, tools }
  */
-function getRouterToolDefinitions() {
+function getRouterToolDefinitions(isNSFWChannel = false) {
   return {
-    systemPrompt: ROUTER_SYSTEM_PROMPT,
+    systemPrompt: getRouterSystemPrompt(isNSFWChannel),
     tools: [
       {
         type: 'function',
@@ -119,11 +142,15 @@ function getRouterToolDefinitions() {
             properties: {
               category: {
                 type: 'string',
-                description: 'Từ khóa hoặc thể loại ảnh muốn lấy (ví dụ: "waifu", "luffy", "rem", "hentai", "list"...). Giữ nguyên từ khóa người dùng nhập.',
+                description: isNSFWChannel 
+                  ? 'Thể loại hoặc từ khóa ảnh muốn lấy (ví dụ: waifu, neko, luffy, boobs, ass, thigh, hentai, pgif...). Nếu người dùng yêu cầu nhạy cảm/18+, hãy map sang category tương ứng (ví dụ: ngực -> boobs, mông -> ass).'
+                  : 'Thể loại hoặc từ khóa ảnh muốn lấy (ví dụ: waifu, neko, luffy, rem, hug, kiss...). TUYỆT ĐỐI không được chọn danh mục nhạy cảm 18+.',
               },
               isNSFW: {
                 type: 'boolean',
-                description: 'Xác định xem từ khóa/yêu cầu có chứa nội dung người lớn, nhạy cảm (NSFW) hay không (ví dụ: hentai, ecchi, ahegao, r18... thì true, còn lại false).',
+                description: isNSFWChannel
+                  ? 'Thiết lập true nếu yêu cầu là ảnh người lớn/nhạy cảm (hentai, boobs, ass, thigh, pgif...), ngược lại là false.'
+                  : 'Phải luôn là false trên kênh an toàn này.',
               }
             },
             required: ['category', 'isNSFW']
