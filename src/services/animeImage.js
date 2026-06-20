@@ -477,11 +477,11 @@ async function sendAnimeImage(message, category, isNSFW = false) {
         }
       }
       
-      // Nếu không tìm được ảnh nào vượt qua kiểm chứng, lấy ảnh cuối cùng được check (Best Effort)
-      imageUrl = verifiedUrl || lastCheckedUrl;
+      // Nếu không tìm được ảnh nào vượt qua kiểm chứng, không dùng ảnh sai (lastCheckedUrl) làm fallback
+      imageUrl = verifiedUrl;
       
       if (!imageUrl) {
-        await message.reply(`❌ Xin lỗi, tôi không tìm thấy ảnh nào hợp lệ cho "**${category}**". Bạn thử từ khóa khác nhé!`);
+        await message.reply(`❌ Xin lỗi, tôi không tìm thấy ảnh nào đúng nội dung "**${category}**" sau khi kiểm chứng bằng AI. Bạn thử từ khóa khác nhé!`);
         return true;
       }
       

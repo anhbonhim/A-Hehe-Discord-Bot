@@ -313,8 +313,8 @@ async function validateImageUrl(url) {
 async function searchAnimeImages(query, isNSFW = false) {
   let rawUrls = [];
   
-  // Nguồn 1: Tavily API
-  if (TAVILY_API_KEY) {
+  // Nguồn 1: Tavily API (Chỉ dùng cho SFW vì Tavily lọc ảnh người lớn rất mạnh)
+  if (TAVILY_API_KEY && !isNSFW) {
     console.info(`[WebSearch] Đang tìm ảnh qua Tavily cho query: "${query}"`);
     try {
       const controller = new AbortController();
