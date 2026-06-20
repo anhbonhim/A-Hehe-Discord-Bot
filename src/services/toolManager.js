@@ -172,23 +172,6 @@ function getToolDefinitions() {
         },
       },
     },
-    {
-      type: 'function',
-      function: {
-        name: 'calculate',
-        description: 'Thực hiện phép tính toán học. Hỗ trợ các biểu thức toán học cơ bản.',
-        parameters: {
-          type: 'object',
-          properties: {
-            expression: {
-              type: 'string',
-              description: 'Biểu thức toán học cần tính (ví dụ: "2 + 3 * 4", "Math.sqrt(144)")',
-            },
-          },
-          required: ['expression'],
-        },
-      },
-    },
   ];
 }
 
@@ -248,27 +231,7 @@ async function executeTool(toolCall) {
         };
       }
 
-      case 'calculate': {
-        // Chỉ cho phép các biểu thức toán học an toàn
-        const expression = args.expression;
-        const sanitized = expression.replace(/[^0-9+\-*/().%\s,Math.sqrtpowabsceilfloorround log sincostan PIE]/g, '');
 
-        if (sanitized !== expression) {
-          return {
-            toolCallId: id,
-            result: 'Lỗi: Biểu thức chứa ký tự không hợp lệ',
-            wasSearch: false,
-          };
-        }
-
-        // Thực thi trong phạm vi an toàn
-        const result = new Function(`"use strict"; return (${expression})`)();
-        return {
-          toolCallId: id,
-          result: `Kết quả: ${expression} = ${result}`,
-          wasSearch: false,
-        };
-      }
 
       default:
         logger.warn(`Tool không xác định: ${functionName}`);

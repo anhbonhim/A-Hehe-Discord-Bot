@@ -307,9 +307,10 @@ async function validateImageUrl(url) {
 /**
  * Tìm kiếm danh sách ảnh anime động
  * @param {string} query - Từ khóa tìm kiếm
+ * @param {boolean} [isNSFW=false] - Cờ xác định kênh/từ khóa có phải người lớn
  * @returns {Promise<Array<string>>} Mảng các URL ảnh hợp lệ
  */
-async function searchAnimeImages(query) {
+async function searchAnimeImages(query, isNSFW = false) {
   let rawUrls = [];
   
   // Nguồn 1: Tavily API
@@ -357,7 +358,8 @@ async function searchAnimeImages(query) {
       const DDG = require('duck-duck-scrape');
       // Thử dùng searchImages, nếu hàm khác thì fallback qua search thường
       const ddgMethod = DDG.searchImages || DDG.search;
-      const ddgResults = await ddgMethod(query + ' anime', { safeSearch: DDG.SafeSearchType.OFF });
+      const safeSearchType = isNSFW ? DDG.SafeSearchType.OFF : DDG.SafeSearchType.STRICT;
+      const ddgResults = await ddgMethod(query + ' anime', { safeSearch: safeSearchType });
       
       if (ddgResults && ddgResults.results) {
         // format từ searchImages

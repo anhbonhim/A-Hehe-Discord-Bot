@@ -412,14 +412,14 @@ async function sendAnimeImage(message, category, isNSFW = false) {
         validImages = cached.images;
         // Soft refresh
         if (cached.needsRefresh) {
-          searchAnimeImages(category).then(newImages => {
+          searchAnimeImages(category, effectiveIsNSFW).then(newImages => {
             if (newImages.length > 0) imageCache.setCache(category, newImages);
           }).catch(err => logger.error(`Lỗi background refresh cho ${category}: ${err.message}`));
         }
       } else {
         // Query mới nếu chưa có Cache
         await message.channel.sendTyping();
-        validImages = await searchAnimeImages(category);
+        validImages = await searchAnimeImages(category, effectiveIsNSFW);
         if (validImages.length > 0) {
           imageCache.setCache(category, validImages);
         }
