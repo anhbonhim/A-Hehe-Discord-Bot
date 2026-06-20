@@ -355,20 +355,45 @@ async function searchAnimeImages(query, isNSFW = false) {
   if (rawUrls.length === 0) {
     console.info(`[WebSearch] Tavily không có ảnh. Fallback sang DuckDuckGo cho: "${query}"`);
     try {
-      const DDG = require('duck-duck-scrape');
-      // Thử dùng searchImages, nếu hàm khác thì fallback qua search thường
-      const ddgMethod = DDG.searchImages || DDG.search;
-      const safeSearchType = isNSFW ? DDG.SafeSearchType.OFF : DDG.SafeSearchType.STRICT;
-      const ddgResults = await ddgMethod(query + ' anime', { safeSearch: safeSearchType });
+      const mainUrl = `https://duckduckgo.com/?q=${encodeURIComponent(query + ' anime')}`;
+      const mainResponse = await fetch(mainUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.5'
+        }
+      });
       
-      if (ddgResults && ddgResults.results) {
-        // format từ searchImages
-        rawUrls = ddgResults.results.slice(0, 15).map(img => img.image || img.url).filter(Boolean);
-      } else if (ddgResults && ddgResults.images) {
-        // format từ search
-        rawUrls = ddgResults.images.slice(0, 15).map(img => img.url || img.image).filter(Boolean);
-      } else if (Array.isArray(ddgResults)) {
-        rawUrls = ddgResults.slice(0, 15).map(img => img.image || img.url).filter(Boolean);
+      if (!mainResponse.ok) {
+        throw new Error(`Không thể tải trang DDG: HTTP ${mainResponse.status}`);
+      }
+      
+      const html = await mainResponse.text();
+      const vqdMatch = html.match(/vqd=['"](\d+-\d+(?:-\d+)?)['"]/) || html.match(/vqd=([^&'"\s>]+)/);
+      if (!vqdMatch) {
+        throw new Error("Không thể tìm thấy VQD token trong HTML");
+      }
+      const vqd = vqdMatch[1];
+      
+      const safeSearchParam = isNSFW ? '-1' : '1';
+      const apiUrl = `https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(query + ' anime')}&vqd=${vqd}&p=${safeSearchParam}&f=,,,`;
+      
+      const apiResponse = await fetch(apiUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/javascript, */*; q=0.01',
+          'Referer': 'https://duckduckgo.com/',
+          'Accept-Language': 'en-US,en;q=0.5'
+        }
+      });
+      
+      if (!apiResponse.ok) {
+        throw new Error(`DDG Image API returned ${apiResponse.status}`);
+      }
+      
+      const data = await apiResponse.json();
+      if (data.results) {
+        rawUrls = data.results.slice(0, 15).map(img => img.image).filter(Boolean);
       }
     } catch (err) {
       console.error(`[WebSearch] Lỗi gọi DuckDuckGo Image: ${err.message}`);
