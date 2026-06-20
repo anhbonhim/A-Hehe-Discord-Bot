@@ -43,6 +43,8 @@ VÍ DỤ ĐÚNG (PHẢI gọi tool):
 - "ảnh hentai rem" → cmd_anime_image(category="hentai rem", isNSFW=true)
 - "succubus" → cmd_anime_image(category="succubus", isNSFW=true)
 - "xwaifu" → cmd_anime_image(category="xwaifu", isNSFW=true)
+- "xneko" → cmd_anime_image(category="xneko", isNSFW=true)
+- "xgif" → cmd_anime_image(category="xgif", isNSFW=true)
 
 VÍ DỤ SAI (KHÔNG gọi tool nào):
 - "tôi mới xoá lịch sử chat với con gà" → câu kể chuyện về người/vật khác, không phải lệnh
