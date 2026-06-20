@@ -1,209 +1,81 @@
-# 🤖 Discord AI Bot — GPT-OSS 120B
+# 🤖 Discord AI Bot
 
-> Bot Discord AI thông minh sử dụng **GPT-OSS 120B** qua OpenRouter với khả năng suy luận mạnh mẽ, tìm kiếm web thời gian thực, và phân tích file đính kèm.
-
----
-
-## ✨ Tính năng
-
-- 🧠 **Suy luận mạnh mẽ** — Sử dụng GPT-OSS 120B với reasoning effort tuỳ chỉnh
-- 🔍 **Tìm kiếm web thời gian thực** — Tích hợp Tavily API & DuckDuckGo
-- 🖼️ **Phân tích hình ảnh (Độ chính xác cao)** — Sử dụng trực tiếp API Google Gemini 2.5/3.5 Flash để đọc chữ (OCR) và nhận diện game/vật thể, tự động fallback về OpenRouter Vision (Nemotron VL) nếu không có key
-- 🌸 **Random ảnh Anime** — Tự động gửi ảnh Waifu hoặc hành động khi nhắc đến từ khóa (SFW qua nekos.best API, NSFW qua nekobot.xyz API)
-- 📄 **Đọc tài liệu** — Hỗ trợ PDF, DOCX, TXT, và nhiều định dạng text
-- 💬 **Lịch sử hội thoại** — Nhớ ngữ cảnh cuộc trò chuyện theo từng kênh
-- 📊 **Trạng thái động** — Trạng thái hoạt động (Custom Status) của bot hiển thị tên model, số token đã dùng / dung lượng context window của kênh hoạt động gần nhất, và số credit OpenRouter còn lại theo thời gian thực
-- 🛠️ **Function Calling** — AI tự động sử dụng công cụ khi cần (tìm kiếm, tính toán, xem giờ)
-- 💬 **Tương tác hoàn toàn tự nhiên** — Trò chuyện trực tiếp bằng cách tag bot `@hehe`, trả lời tin nhắn (reply) của bot hoặc nhắn tin riêng (DM)
-- 🔄 **Đổi model linh hoạt** — Chuyển đổi model AI bất kỳ trên OpenRouter
+Bot Discord AI đa năng tích hợp mô hình **GPT-OSS 120B** (qua OpenRouter) kết hợp cơ chế **2-Stage Routing**, tra cứu web thời gian thực, đọc hiểu tài liệu, phân tích hình ảnh và tích hợp bộ công cụ gửi ảnh Anime an toàn.
 
 ---
 
-## 🔗 Link mời Bot (Invite Link)
+## ✨ Tính năng chính
 
-Vì bot đã được gỡ bỏ hoàn toàn Slash Commands để chuyển sang trò chuyện tự nhiên bằng tin nhắn/mention, bot bắt buộc phải được mời vào Máy chủ (Guild) như một thành viên để lắng nghe các tin nhắn trong kênh và phản hồi:
-
-* **Mời Bot vào Máy chủ (Guild Install):** [Link Guild Install](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=0&scope=bot)
-
----
-
-## 📋 Yêu cầu
-
-- **Node.js** v18.0.0 trở lên
-- **Discord Bot Token** — [Tạo tại Discord Developer Portal](https://discord.com/developers/applications)
-- **OpenRouter API Key** — [Lấy tại OpenRouter](https://openrouter.ai/keys)
-- **Google Gemini API Key** *(tuỳ chọn nhưng khuyến khích)* — [Lấy tại Google AI Studio](https://aistudio.google.com/app/apikey) để nhận diện hình ảnh chất lượng cao
-- **Tavily API Key** *(tuỳ chọn)* — [Đăng ký tại Tavily](https://tavily.com)
+- 🧠 **Cơ chế 2-Stage Routing**:
+  - **Tầng 1 (AI Router - `gpt-oss-20b`)**: Nhận diện ý định và tự động ánh xạ lệnh hệ thống (xóa lịch sử, đổi mức suy luận, gửi ảnh anime...) theo loại kênh (SFW/NSFW).
+  - **Tầng 2 (Model chính - `gpt-oss-120b`)**: Trò chuyện tự nhiên, suy luận sâu sắc (sử dụng reasoning effort tùy chỉnh).
+- 🔍 **Tìm kiếm web thời gian thực**: Tra cứu thông tin mới nhất qua Tavily API hoặc DuckDuckGo.
+- 🖼️ **Phân tích hình ảnh (Vision)**: Nhận diện vật thể, OCR chữ viết qua Google Gemini 2.5 Flash API hoặc OpenRouter Vision.
+- 📄 **Trích xuất tài liệu**: Đọc và phân tích nội dung các tệp đính kèm (PDF, DOCX, TXT...).
+- 🎴 **Gửi ảnh Anime thông minh**:
+  - Tích hợp 54 danh mục tĩnh chất lượng cao từ Nekobot API & nekos.best.
+  - Hỗ trợ tìm kiếm động (Web Search Fallback) khi yêu cầu nhân vật/chủ đề cụ thể (như `luffy`, `rem`).
+  - **NSFW Guard kép**: Lọc từ khóa nhạy cảm trên kênh thường và chặn gửi ảnh người lớn cấp mã nguồn (code-level) nếu kênh không phải NSFW.
+- 💬 **Lịch sử hội thoại & Trạng thái động**: Tự động lưu ngữ cảnh theo kênh và hiển thị thông số hoạt động của bot thời gian thực.
 
 ---
 
-## 🚀 Hướng dẫn cài đặt
+## 🚀 Cài đặt & Khởi chạy
 
-### 1. Clone repository
-
-```bash
-git clone https://github.com/your-username/discord-ai-bot.git
-cd discord-ai-bot
-```
-
-### 2. Cài đặt dependencies
-
+### 1. Cài đặt dependencies
 ```bash
 npm install
 ```
 
-### 3. Cấu hình biến môi trường
-
-```bash
-cp .env.example .env
-```
-
-Mở file `.env` và điền các giá trị:
-
+### 2. Cấu hình biến môi trường
+Tạo tệp `.env` từ `.env.example` và thiết lập các biến sau:
 ```env
-DISCORD_TOKEN=your_discord_bot_token_here
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-GEMINI_API_KEY=your_gemini_api_key_here (nếu muốn dùng Vision xịn)
+DISCORD_TOKEN=your_discord_bot_token
+OPENROUTER_API_KEY=your_openrouter_api_key
+GEMINI_API_KEY=your_gemini_api_key (tùy chọn - dùng cho Vision)
+TAVILY_API_KEY=your_tavily_api_key (tùy chọn - dùng cho Web Search)
 ```
 
-### 4. Tạo Discord Bot
-
-1. Truy cập [Discord Developer Portal](https://discord.com/developers/applications)
-2. Nhấn **New Application** → đặt tên → **Create**
-3. Vào tab **Bot** → nhấn **Reset Token** → sao chép token
-4. Bật **MESSAGE CONTENT INTENT** trong phần Privileged Gateway Intents
-5. Sử dụng liên kết mời đã tạo sẵn để thêm bot vào máy chủ của bạn:
-   [Link Mời Bot (Guild Install)](https://discord.com/oauth2/authorize?client_id=1492072136745947237&permissions=116736&integration_type=0&scope=bot)
-
-### 5. Lấy OpenRouter API Key
-
-1. Truy cập [OpenRouter](https://openrouter.ai)
-2. Đăng ký/đăng nhập
-3. Vào [API Keys](https://openrouter.ai/keys) → tạo key mới
-4. Sao chép key vào file `.env`
-
-### 6. Khởi động bot
-
-```bash
-npm start
-```
-
-Hoặc chạy ở chế độ development (tự restart khi code thay đổi):
-
-```bash
-npm run dev
-```
+### 3. Chạy bot
+- Chế độ Production: `npm start`
+- Chế độ Development: `npm run dev`
 
 ---
 
-## 📝 Cách tương tác và Danh sách lệnh
+## 📋 Danh sách Lệnh Hệ thống (Stage 1)
 
-Bot hỗ trợ **Tương tác trực tiếp bằng tin nhắn** bằng cách tag bot `@hehe`, trả lời tin nhắn (reply) của bot trong server, hoặc nhắn tin trực tiếp trong DM (không cần tag bot).
+Bot tự động nhận diện ý định trò chuyện bằng ngôn ngữ tự nhiên (không cần slash command):
 
-### 💬 Tương tác bằng tin nhắn chat
-
-Bạn chỉ cần nhắn tin (tag bot `@hehe`, reply tin nhắn của bot, hoặc nhắn trực tiếp trong DM) kèm nội dung mong muốn. 
-
-Bot sử dụng một hệ thống **2-Stage AI Router** thông minh thay thế hoàn toàn cho các biểu thức chính quy (Regex) thô cứng:
-* **Tầng 1 (AI Router - `gpt-oss-20b` với low reasoning)**: Tự động phân tích tin nhắn của bạn để nhận diện các yêu cầu hệ thống dưới dạng ngôn ngữ tự nhiên, viết tắt, từ lóng hoặc sai chính tả. Nếu phát hiện ra lệnh hệ thống, bot sẽ kích hoạt tool và trả về kết quả bằng template cố định ngay lập tức để đảm bảo thông tin chính xác 100%.
-* **Tầng 2 (Model chính - `gpt-oss-120b`)**: Nếu Tầng 1 báo lỗi hoặc xác định tin nhắn chỉ là cuộc nói chuyện thông thường, yêu cầu sẽ tự động chuyển tiếp sang mô hình lớn để phản hồi.
-
-Các lệnh hệ thống được Tầng 1 nhận dạng bao gồm:
-
-| Ý định của bạn | Ví dụ tin nhắn | Hành động của Bot |
-|-----------------|-------|-------------------|
-| **Hỏi AI thông thường** | `@hehe Giải thích lý thuyết tương đối` | Trực tiếp chuyển tiếp sang mô hình chính ở Tầng 2 |
-| **Xoá lịch sử hội thoại** | `@hehe xoá lịch sử đi` hoặc `quên hết đi bot ơi` | Kích hoạt `cmd_clear_history` để xoá lịch sử kênh hiện tại |
-| **Xem thông tin model** | `@hehe xem mô hình` hoặc `mày đang chạy model gì` | Kích hoạt `cmd_model_info` hiển thị chi tiết thông số cấu hình |
-| **Đổi mức suy luận** | `@hehe đổi reasoning lên cao` hoặc `suy nghĩ thấp thôi` | Kích hoạt `cmd_change_reasoning` đổi mức (`auto`/`low`/`medium`/`high`) |
-| **Trợ giúp & Hướng dẫn** | `@hehe cần trợ giúp` hoặc `help` hoặc `bot dùng thế nào` | Kích hoạt `cmd_bot_help` để hiển thị menu hướng dẫn sử dụng bot |
-| **Tìm kiếm web trực tiếp** | `@hehe tìm kiếm tin tức công nghệ mới nhất` | Tìm kiếm trực tiếp qua Google/Tavily (bỏ qua Tầng 2) |
-| **Đọc ảnh/tài liệu** | Gửi kèm ảnh/tài liệu + tag `@hehe` | Phân tích PDF/DOCX hoặc mô tả ảnh đính kèm |
-| **Ảnh Anime tĩnh (Có sẵn)** | `@hehe waifu` hoặc `@hehe ôm` | Trả về ảnh anime ngẫu nhiên theo hành động từ API tĩnh (nekos.best) |
-| **Ảnh Anime động (Bất kỳ)** | `@hehe gửi ảnh luffy` hoặc `@hehe ảnh ngủ` | Kích hoạt `cmd_anime_image` tự động tìm kiếm, xác thực và hiển thị ảnh bất kỳ từ internet |
-| **Ảnh Anime 18+ (SFW/NSFW)** | `@hehe xwaifu` hoặc `@hehe ảnh hentai rem` | Tự động nhận diện NSFW qua AI Router để trả về ảnh phù hợp (chỉ hoạt động trong kênh NSFW) |
-
+| Lệnh / Ý định | Ví dụ tin nhắn | Mô tả hành động |
+|---|---|---|
+| **Trò chuyện AI** | `@bot giải thích thuyết tương đối` | Chuyển tiếp thẳng tới model chính (Stage 2) |
+| **Xoá lịch sử** | `@bot xóa lịch sử chat` / `quên hết đi` | Làm sạch ngữ cảnh hội thoại của kênh hiện tại |
+| **Thông tin model** | `@bot xem mô hình đang chạy` | Hiển thị thông số cấu hình model AI của bot |
+| **Đổi suy luận** | `@bot đổi reasoning sang high` | Đổi mức suy luận của AI (`auto`/`low`/`medium`/`high`) |
+| **Trợ giúp** | `@bot hướng dẫn sử dụng` / `help` | Hiển thị menu trợ giúp và danh sách danh mục ảnh |
+| **Tra cứu tin tức** | `@bot tìm kiếm thời tiết hôm nay` | Tra cứu thông tin thời gian thực từ web |
+| **Ảnh Anime tĩnh** | `@bot waifu` / `@bot ôm` / `@bot neko` | Gửi ảnh anime tương ứng từ Nekobot & nekos.best |
+| **Ảnh Anime động** | `@bot gửi ảnh luffy` / `@bot ảnh rem` | Tìm kiếm động từ internet làm fallback (SFW/NSFW tương ứng) |
 
 ---
 
-## ⚙️ Cấu hình
-
-| Biến môi trường | Mô tả | Mặc định |
-|-----------------|--------|----------|
-| `DISCORD_TOKEN` | Token của Discord bot | *(bắt buộc)* |
-| `OPENROUTER_API_KEY` | API key của OpenRouter | *(bắt buộc)* |
-| `GEMINI_API_KEY` | API key Google Gemini để nhận diện ảnh | *(tuỳ chọn)* |
-| `AI_MODEL` | Model AI sử dụng chính | `openai/gpt-oss-120b` |
-| `VISION_MODEL` | Model vision dự phòng trên OpenRouter | `nvidia/nemotron-nano-12b-v2-vl:free` |
-| `REASONING_EFFORT` | Mức độ suy luận (low/medium/high) | `high` |
-| `TAVILY_API_KEY` | API key Tavily cho tìm kiếm | *(tuỳ chọn)* |
-
----
-
-## 🏗️ Kiến trúc dự án
+## 🏗️ Cấu trúc dự án
 
 ```
-discord-ai-bot/
-├── .env.example          # Mẫu biến môi trường
-├── package.json          # Dependencies và scripts
-├── README.md             # Tài liệu hướng dẫn
-└── src/
-    ├── index.js          # Điểm khởi đầu - khởi tạo bot
-    ├── config.js         # Cấu hình tập trung
-    ├── events/           # Event handlers
-    │   ├── ready.js      # Sự kiện bot sẵn sàng
-    │   └── messageCreate.js  # Xử lý tin nhắn
-    ├── services/         # Business logic
-    │   ├── aiService.js          # Gọi AI qua OpenRouter
-    │   ├── conversationManager.js # Quản lý lịch sử hội thoại
-    │   ├── webSearch.js          # Tìm kiếm web
-    │   ├── imageAnalyzer.js      # Phân tích hình ảnh
-    │   ├── documentParser.js     # Trích xuất nội dung tài liệu
-    │   ├── toolManager.js        # Quản lý function calling
-    │   ├── animeImage.js         # Xử lý gửi ảnh anime tĩnh & động
-    │   ├── imageCache.js         # Bộ nhớ đệm (Cache) ảnh động 24h với Soft Refresh
-    │   └── imageHistory.js       # Bộ lọc lịch sử SHA256 chống lặp ảnh
-    └── utils/            # Tiện ích
-        ├── logger.js     # Ghi log với màu sắc
-        └── splitMessage.js # Chia nhỏ tin nhắn dài
+src/
+├── index.js              # Khởi chạy và thiết lập bot
+├── config.js             # Cấu hình tập trung (.env)
+├── events/
+│   ├── ready.js          # Sự kiện bot online & cập nhật status
+│   └── messageCreate.js  # Luồng xử lý tin nhắn & 2-Stage Routing
+├── services/
+│   ├── aiService.js      # Giao tiếp API OpenRouter
+│   ├── animeImage.js     # Điều phối gửi ảnh Anime tĩnh & động
+│   ├── documentParser.js # Trích xuất văn bản tài liệu
+│   ├── imageAnalyzer.js  # Phân tích hình ảnh (Vision)
+│   ├── toolManager.js    # Quản lý tool call và AI Router
+│   └── webSearch.js      # Công cụ tìm kiếm web & ảnh động (DDG custom scraper)
+└── utils/
+    ├── logger.js         # Ghi log console có màu sắc
+    └── splitMessage.js   # Chia nhỏ tin nhắn vượt giới hạn Discord
 ```
-
----
-
-## 🔧 Xử lý sự cố
-
-### Bot không phản hồi
-
-1. Kiểm tra bot đã online (xanh lá) trên Discord
-2. Đảm bảo **MESSAGE CONTENT INTENT** đã bật trong Developer Portal
-3. Kiểm tra bot có quyền đọc/gửi tin nhắn trong kênh
-4. Xem log console để tìm lỗi
-
-### Lỗi "Invalid Token"
-
-- Kiểm tra `DISCORD_TOKEN` trong file `.env`
-- Token có thể đã bị reset → tạo token mới trên Developer Portal
-
-### Lỗi "401 Unauthorized" từ OpenRouter
-
-- Kiểm tra `OPENROUTER_API_KEY` trong file `.env`
-- Đảm bảo API key còn hiệu lực và có đủ credit
-
-
-
-### Lỗi "Missing Permissions"
-
-- Mời lại bot với đầy đủ permissions
-- Kiểm tra role của bot trong server settings
-
----
-
-## 📄 Giấy phép
-
-Dự án này được phát hành theo giấy phép [MIT](LICENSE).
-
----
-
-<p align="center">
-  Made with ❤️ using <strong>Discord.js v14</strong> & <strong>OpenRouter</strong>
-</p>
