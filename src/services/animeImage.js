@@ -7,6 +7,7 @@ const logger = require('../utils/logger');
 const { searchAnimeImages } = require('./webSearch');
 const imageCache = require('./imageCache');
 const imageHistory = require('./imageHistory');
+const { verifyImageContent } = require('./imageVerification');
 
 // ============================================================
 // CẤU HÌNH
@@ -432,18 +433,57 @@ async function sendAnimeImage(message, category, isNSFW = false) {
       // Lọc qua History (Chống lặp)
       // Tỷ lệ lặp tự nhiên: 1/25 bỏ qua history filter
       const shouldBypassHistory = Math.random() < (1 / 25);
-      let candidateImages = validImages;
+      let candidateImages = [...validImages];
       
       if (!shouldBypassHistory) {
         candidateImages = validImages.filter(url => !imageHistory.isRecent(category, url));
         // Nếu tất cả ảnh đều đã nằm trong lịch sử, đành lấy lại toàn bộ danh sách để tránh lỗi
         if (candidateImages.length === 0) {
-          candidateImages = validImages;
+          candidateImages = [...validImages];
         }
       }
       
-      // Random chọn 1 ảnh
-      imageUrl = candidateImages[Math.floor(Math.random() * candidateImages.length)];
+      let verifiedUrl = null;
+      let lastCheckedUrl = null;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (candidateImages.length > 0 && attempts < maxAttempts) {
+        attempts++;
+        const randomIndex = Math.floor(Math.random() * candidateImages.length);
+        const selectedUrl = candidateImages[randomIndex];
+        lastCheckedUrl = selectedUrl;
+        
+        // Loại bỏ khỏi candidate để không chọn lại trong vòng lặp này
+        candidateImages.splice(randomIndex, 1);
+        
+        // Thực hiện kiểm chứng AI Vision
+        const isValid = await verifyImageContent(selectedUrl, category);
+        if (isValid) {
+          verifiedUrl = selectedUrl;
+          break;
+        } else {
+          logger.warn(`[AnimeImage] Vision check FAILED for: ${selectedUrl}. Removing from cache.`);
+          // Xóa ảnh sai khỏi danh sách cache chung (validImages)
+          const indexInValid = validImages.indexOf(selectedUrl);
+          if (indexInValid !== -1) {
+            validImages.splice(indexInValid, 1);
+            if (validImages.length > 0) {
+              imageCache.setCache(category, validImages);
+            } else {
+              imageCache.clearCache(category);
+            }
+          }
+        }
+      }
+      
+      // Nếu không tìm được ảnh nào vượt qua kiểm chứng, lấy ảnh cuối cùng được check (Best Effort)
+      imageUrl = verifiedUrl || lastCheckedUrl;
+      
+      if (!imageUrl) {
+        await message.reply(`❌ Xin lỗi, tôi không tìm thấy ảnh nào hợp lệ cho "**${category}**". Bạn thử từ khóa khác nhé!`);
+        return true;
+      }
       
       // Thêm ảnh vừa gửi vào History
       imageHistory.addHistory(category, imageUrl);
