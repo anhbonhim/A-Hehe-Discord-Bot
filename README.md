@@ -119,8 +119,10 @@ Các lệnh hệ thống được Tầng 1 nhận dạng bao gồm:
 | **Trợ giúp & Hướng dẫn** | `@hehe cần trợ giúp` hoặc `help` hoặc `bot dùng thế nào` | Kích hoạt `cmd_bot_help` để hiển thị menu hướng dẫn sử dụng bot |
 | **Tìm kiếm web trực tiếp** | `@hehe tìm kiếm tin tức công nghệ mới nhất` | Tìm kiếm trực tiếp qua Google/Tavily (bỏ qua Tầng 2) |
 | **Đọc ảnh/tài liệu** | Gửi kèm ảnh/tài liệu + tag `@hehe` | Phân tích PDF/DOCX hoặc mô tả ảnh đính kèm |
-| **Ảnh Anime dễ thương** | `@hehe waifu` hoặc `@hehe ôm` | Trả về ảnh anime ngẫu nhiên theo hành động (nekos.best) |
-| **Ảnh Anime 18+** | `@hehe xwaifu` hoặc `@hehe xneko` | Trả về ảnh anime 18+ ngẫu nhiên (chỉ hoạt động trong kênh NSFW) |
+| **Ảnh Anime tĩnh (Có sẵn)** | `@hehe waifu` hoặc `@hehe ôm` | Trả về ảnh anime ngẫu nhiên theo hành động từ API tĩnh (nekos.best) |
+| **Ảnh Anime động (Bất kỳ)** | `@hehe gửi ảnh luffy` hoặc `@hehe ảnh ngủ` | Kích hoạt `cmd_anime_image` tự động tìm kiếm, xác thực và hiển thị ảnh bất kỳ từ internet |
+| **Ảnh Anime 18+ (SFW/NSFW)** | `@hehe xwaifu` hoặc `@hehe ảnh hentai rem` | Tự động nhận diện NSFW qua AI Router để trả về ảnh phù hợp (chỉ hoạt động trong kênh NSFW) |
+
 
 ---
 
@@ -157,7 +159,10 @@ discord-ai-bot/
     │   ├── webSearch.js          # Tìm kiếm web
     │   ├── imageAnalyzer.js      # Phân tích hình ảnh
     │   ├── documentParser.js     # Trích xuất nội dung tài liệu
-    │   └── toolManager.js        # Quản lý function calling
+    │   ├── toolManager.js        # Quản lý function calling
+    │   ├── animeImage.js         # Xử lý gửi ảnh anime tĩnh & động
+    │   ├── imageCache.js         # Bộ nhớ đệm (Cache) ảnh động 24h với Soft Refresh
+    │   └── imageHistory.js       # Bộ lọc lịch sử SHA256 chống lặp ảnh
     └── utils/            # Tiện ích
         ├── logger.js     # Ghi log với màu sắc
         └── splitMessage.js # Chia nhỏ tin nhắn dài
